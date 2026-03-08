@@ -154,7 +154,7 @@ export default function ChatWindow({ connection, sessionId, senderName, senderRo
             <div style={s.ratingBox}>
               <div style={s.ratingTitle}>HOW WAS YOUR EXPERIENCE?</div>
               <div style={s.stars}>{[1,2,3,4,5].map(star => (
-                <button key={star} style={{ ...s.star, color: star <= rating ? "#f59e0b" : "#1e2533" }} onClick={() => { setRating(star); setRated(true); }}>★</button>
+                <button key={star} style={{ ...s.star, color: star <= rating ? "#f59e0b" : "#1e2533" }} onClick={() => { setRating(star); setRated(true); fetch(`${BACKEND}/api/chat/session/${sessionId}/rating`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ rating: star }) }).catch(() => {}); }}>★</button>
               ))}</div>
             </div>
           )}

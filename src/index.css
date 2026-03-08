@@ -22,3 +22,8 @@ input, textarea, select, button {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #1e2533; border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: #0d1f2d; }
+
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}

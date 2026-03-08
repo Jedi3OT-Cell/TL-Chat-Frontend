@@ -1,7 +1,7 @@
 // AgentDashboard.jsx — E.D.I.T.H JARVIS Interface
 import { useState, useEffect, useRef } from "react";
 import * as signalR from "@microsoft/signalr";
-import { useNavigate } from "react-router-dom";
+import Analytics from "./Analytics";
 
 const BACKEND = "http://localhost:5000";
 
@@ -22,8 +22,8 @@ export default function AgentDashboard({ agentName, onJoinSession }) {
   const [selected, setSelected] = useState(null);
   const [connected, setConnected] = useState(false);
   const [time, setTime] = useState(new Date());
+  const [showAnalytics, setShowAnalytics] = useState(false);
   const connRef = useRef(null);
-  const navigate = useNavigate();
 
   useEffect(() => {
     const t = setInterval(() => setTime(new Date()), 1000);
@@ -98,7 +98,7 @@ export default function AgentDashboard({ agentName, onJoinSession }) {
         </div>
         <div style={s.headerRight}>
           <div style={s.clock}>{time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</div>
-          <button style={s.analyticsBtn} onClick={() => navigate("/analytics")}>
+          <button style={s.analyticsBtn} onClick={() => setShowAnalytics(true)}>
             ◈ ANALYTICS
           </button>
         </div>
@@ -222,6 +222,14 @@ export default function AgentDashboard({ agentName, onJoinSession }) {
           )}
         </div>
       </div>
+      {showAnalytics && (
+        <div style={{position:"fixed",inset:0,zIndex:100,display:"flex",justifyContent:"flex-end"}}>
+          <div style={{position:"absolute",inset:0,background:"rgba(2,5,9,0.7)"}} onClick={() => setShowAnalytics(false)} />
+          <div style={{position:"relative",width:"80vw",maxWidth:"1100px",height:"100vh",overflowY:"auto",background:"#020509",borderLeft:"1px solid #00d4ff20",animation:"slideIn 0.25s ease"}}>
+            <Analytics onBack={() => setShowAnalytics(false)} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
