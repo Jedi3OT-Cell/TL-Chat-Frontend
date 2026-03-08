@@ -1,184 +1,182 @@
-// CustomerIntakeForm.jsx
+// CustomerIntakeForm.jsx — E.D.I.T.H JARVIS Interface
 import { useState } from "react";
 import * as signalR from "@microsoft/signalr";
 
 const BACKEND = "http://localhost:5000";
 
-export default function CustomerIntakeForm({ onConnected }) {
-  const [form, setForm] = useState({
-    name: "", org: "", os: "", module: "", issue: "",
-  });
+export default function CustomerIntakeForm({ onSessionStart }) {
+  const [form, setForm] = useState({ customerName: "", organizationName: "", osPlatform: "", issueDescription: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [focused, setFocused] = useState(null);
 
-  const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+  const osList = ["Windows 11", "Windows 10", "Windows Server 2022", "Windows Server 2019", "macOS", "Linux"];
 
-  const submit = async () => {
-    if (!form.name || !form.org || !form.os || !form.module || !form.issue) {
-      setError("Please fill out all fields before continuing.");
+  const handleSubmit = async () => {
+    if (!form.customerName || !form.organizationName || !form.osPlatform || !form.issueDescription) {
+      setError("ALL FIELDS REQUIRED");
       return;
     }
-    setError("");
     setLoading(true);
+    setError("");
     try {
+      const res = await fetch(`${BACKEND}/api/chat/session`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      const data = await res.json();
       const conn = new signalR.HubConnectionBuilder()
         .withUrl(`${BACKEND}/chathub`)
         .withAutomaticReconnect()
         .build();
-
       await conn.start();
-      const sessionId = crypto.randomUUID();
-
-      await conn.invoke("SubmitIntake", sessionId, form.name, {
-        organizationName: form.org,
-        osPlatform: form.os,
-        moduleAffected: form.module,
-        issueDescription: form.issue,
-      });
-
-      onConnected({ connection: conn, sessionId, customerName: form.name });
+      await conn.invoke("JoinSessionAsCustomer", data.sessionId, form.customerName);
+      onSessionStart({ connection: conn, sessionId: data.sessionId, customerName: form.customerName });
     } catch {
-      setError("Something went wrong connecting to support. Please refresh and try again.");
+      setError("CONNECTION FAILED — RETRY");
       setLoading(false);
     }
   };
 
+  const inputStyle = (field) => ({
+    ...s.input,
+    ...(focused === field ? s.inputFocused : {}),
+  });
+
   return (
     <div style={s.page}>
-      {/* Left Panel — Branding */}
-      <div style={s.left}>
-        <div style={s.leftInner}>
-          <div style={s.logoWrap}>
-            <div style={s.logoMark}>TL</div>
-            <div>
-              <div style={s.logoName}>ThreatLocker</div>
-              <div style={s.logoSub}>Customer Support</div>
+      <div style={s.grid} />
+      <div style={s.scanLine} />
+
+      <div style={s.card}>
+        {/* Logo */}
+        <div style={s.logoArea}>
+          <div style={s.logoMark}>
+            <span style={s.logoText}>TL</span>
+            <div style={s.logoRing} />
+            <div style={s.logoPulse} />
+          </div>
+          <div>
+            <div style={s.brandName}>THREATLOCKER</div>
+            <div style={s.brandSub}>SUPPORT · SECURE CHANNEL</div>
+          </div>
+        </div>
+
+        <div style={s.divider} />
+
+        <div style={s.formTitle}>INITIATE SUPPORT SESSION</div>
+        <div style={s.formSub}>All transmissions are encrypted end-to-end with AES-256-GCM</div>
+
+        <div style={s.fields}>
+          <div style={s.fieldGroup}>
+            <label style={s.label}>FULL NAME</label>
+            <input
+              style={inputStyle("customerName")}
+              placeholder="Enter your name"
+              value={form.customerName}
+              onFocus={() => setFocused("customerName")}
+              onBlur={() => setFocused(null)}
+              onChange={e => setForm({ ...form, customerName: e.target.value })}
+            />
+          </div>
+
+          <div style={s.fieldGroup}>
+            <label style={s.label}>ORGANIZATION</label>
+            <input
+              style={inputStyle("organizationName")}
+              placeholder="Company or organization name"
+              value={form.organizationName}
+              onFocus={() => setFocused("organizationName")}
+              onBlur={() => setFocused(null)}
+              onChange={e => setForm({ ...form, organizationName: e.target.value })}
+            />
+          </div>
+
+          <div style={s.fieldGroup}>
+            <label style={s.label}>OPERATING SYSTEM</label>
+            <div style={s.osGrid}>
+              {osList.map(os => (
+                <button
+                  key={os}
+                  style={{ ...s.osChip, ...(form.osPlatform === os ? s.osChipActive : {}) }}
+                  onClick={() => setForm({ ...form, osPlatform: os })}
+                >
+                  {os}
+                </button>
+              ))}
             </div>
           </div>
-          <h1 style={s.headline}>Expert help,<br />when you need it.</h1>
-          <p style={s.tagline}>
-            Our support agents are backed by E.D.I.T.H — our AI triage system
-            that reads your issue before the chat even begins.
-          </p>
-          <div style={s.featureList}>
-            {[
-              ["⚡", "AI-Powered Triage", "E.D.I.T.H pre-analyzes your issue"],
-              ["🔒", "End-to-End Encrypted", "AES-256-GCM secured messaging"],
-              ["🛡", "Zero Trust Architecture", "Every connection verified"],
-            ].map(([icon, title, desc]) => (
-              <div key={title} style={s.feature}>
-                <span style={s.featureIcon}>{icon}</span>
-                <div>
-                  <div style={s.featureTitle}>{title}</div>
-                  <div style={s.featureDesc}>{desc}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-          <div style={s.edithBadge}>
-            <span style={s.edithDot} />
-            E.D.I.T.H — Endpoint Defense Intelligence & Triage Hub
-          </div>
-        </div>
-      </div>
 
-      {/* Right Panel — Form */}
-      <div style={s.right}>
-        <div style={s.formCard}>
-          <div style={s.formHeader}>
-            <h2 style={s.formTitle}>Before we connect you</h2>
-            <p style={s.formSub}>A few quick details help our agents investigate your issue before the chat begins.</p>
-          </div>
-
-          <div style={s.row}>
-            <Field label="Your Name" required>
-              <input style={s.input} placeholder="e.g. John Smith" value={form.name} onChange={e => set("name", e.target.value)} />
-            </Field>
-            <Field label="Organization Name" required>
-              <input style={s.input} placeholder="e.g. Acme Corp" value={form.org} onChange={e => set("org", e.target.value)} />
-            </Field>
-          </div>
-
-          <div style={s.row}>
-            <Field label="Operating System / Platform" required>
-              <select style={s.input} value={form.os} onChange={e => set("os", e.target.value)}>
-                <option value="">Select a platform...</option>
-                {["Windows 10","Windows 11","Windows Server 2016","Windows Server 2019","Windows Server 2022","macOS","Linux","Other"].map(o => (
-                  <option key={o} value={o}>{o}</option>
-                ))}
-              </select>
-            </Field>
-            <Field label="ThreatLocker Module Affected" required>
-              <select style={s.input} value={form.module} onChange={e => set("module", e.target.value)}>
-                <option value="">Select a module...</option>
-                {["Application Control","Ringfencing","Storage Control","Network Control","Elevation Control","Configuration Manager","Ops Center","Other / Not Sure"].map(o => (
-                  <option key={o} value={o}>{o}</option>
-                ))}
-              </select>
-            </Field>
-          </div>
-
-          <Field label="Describe Your Issue" required>
+          <div style={s.fieldGroup}>
+            <label style={s.label}>DESCRIBE YOUR ISSUE</label>
             <textarea
-              style={{ ...s.input, ...s.textarea }}
-              placeholder="What is happening? What were you doing when the issue occurred? Any error messages?"
-              value={form.issue}
-              onChange={e => set("issue", e.target.value)}
+              style={{ ...inputStyle("issueDescription"), ...s.textarea, ...(focused === "issueDescription" ? s.inputFocused : {}) }}
+              placeholder="Provide as much detail as possible — this helps our AI pre-analyze your case before an agent joins"
+              value={form.issueDescription}
+              rows={4}
+              onFocus={() => setFocused("issueDescription")}
+              onBlur={() => setFocused(null)}
+              onChange={e => setForm({ ...form, issueDescription: e.target.value })}
             />
-          </Field>
+          </div>
+        </div>
 
-          {error && <div style={s.error}>{error}</div>}
+        {error && <div style={s.error}>⚠ {error}</div>}
 
-          <button style={{ ...s.btn, ...(loading ? s.btnLoading : {}) }} onClick={submit} disabled={loading}>
-            {loading ? (
-              <span style={s.spinRow}><span style={s.spinner} />E.D.I.T.H is analyzing your issue...</span>
-            ) : "Start Support Chat →"}
-          </button>
+        <button
+          style={{ ...s.submitBtn, ...(loading ? s.submitBtnLoading : {}) }}
+          onClick={handleSubmit}
+          disabled={loading}
+        >
+          {loading ? (
+            <span style={s.loadingRow}>
+              <span style={s.spinner} />
+              ESTABLISHING SECURE CONNECTION...
+            </span>
+          ) : (
+            "CONNECT TO SUPPORT ▶"
+          )}
+        </button>
+
+        <div style={s.footer}>
+          <span style={s.encIcon}>🔒</span>
+          SESSION ENCRYPTED · ZERO TRUST ARCHITECTURE
         </div>
       </div>
-    </div>
-  );
-}
-
-function Field({ label, required, children }) {
-  return (
-    <div style={{ flex: 1, minWidth: 0 }}>
-      <label style={s.label}>{label} {required && <span style={s.req}>*</span>}</label>
-      {children}
     </div>
   );
 }
 
 const s = {
-  page: { display: "flex", height: "100vh", width: "100vw", background: "#080b12", overflow: "hidden" },
-  left: { width: "420px", minWidth: "420px", background: "linear-gradient(160deg, #0d1117 0%, #0a0f1a 100%)", borderRight: "1px solid #1a2035", display: "flex", alignItems: "center", padding: "40px" },
-  leftInner: { width: "100%" },
-  logoWrap: { display: "flex", alignItems: "center", gap: "12px", marginBottom: "48px" },
-  logoMark: { width: "44px", height: "44px", borderRadius: "12px", background: "linear-gradient(135deg, #0ea5e9, #0369a1)", color: "#fff", fontWeight: "800", fontSize: "15px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 0 24px rgba(14,165,233,0.3)" },
-  logoName: { color: "#f1f5f9", fontWeight: "700", fontSize: "17px" },
-  logoSub: { color: "#0ea5e9", fontSize: "11px", fontWeight: "600", letterSpacing: "0.5px" },
-  headline: { color: "#f1f5f9", fontSize: "36px", fontWeight: "800", lineHeight: "1.2", marginBottom: "16px", letterSpacing: "-0.5px" },
-  tagline: { color: "#64748b", fontSize: "14px", lineHeight: "1.7", marginBottom: "36px" },
-  featureList: { display: "flex", flexDirection: "column", gap: "20px", marginBottom: "40px" },
-  feature: { display: "flex", alignItems: "flex-start", gap: "14px" },
-  featureIcon: { fontSize: "20px", flexShrink: 0, marginTop: "1px" },
-  featureTitle: { color: "#e2e8f0", fontSize: "13px", fontWeight: "700", marginBottom: "2px" },
-  featureDesc: { color: "#475569", fontSize: "12px" },
-  edithBadge: { display: "flex", alignItems: "center", gap: "8px", color: "#334155", fontSize: "11px", borderTop: "1px solid #1a2035", paddingTop: "24px" },
-  edithDot: { width: "6px", height: "6px", borderRadius: "50%", background: "#22c55e", boxShadow: "0 0 6px #22c55e", flexShrink: 0 },
-  right: { flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "40px", overflowY: "auto" },
-  formCard: { width: "100%", maxWidth: "580px" },
-  formHeader: { marginBottom: "32px" },
-  formTitle: { color: "#f1f5f9", fontSize: "26px", fontWeight: "700", marginBottom: "8px" },
-  formSub: { color: "#64748b", fontSize: "14px", lineHeight: "1.5" },
-  row: { display: "flex", gap: "16px", marginBottom: "20px" },
-  label: { display: "block", color: "#94a3b8", fontSize: "11px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "8px" },
-  req: { color: "#0ea5e9" },
-  input: { width: "100%", background: "#0d1117", border: "1px solid #1e2533", borderRadius: "8px", padding: "12px 14px", color: "#f1f5f9", fontSize: "14px", outline: "none", marginBottom: "0" },
-  textarea: { height: "110px", resize: "vertical", marginBottom: "0" },
-  error: { background: "#dc262615", border: "1px solid #dc2626", borderRadius: "8px", padding: "10px 14px", color: "#fca5a5", fontSize: "13px", marginBottom: "16px" },
-  btn: { width: "100%", background: "linear-gradient(135deg, #0ea5e9, #0369a1)", color: "#fff", border: "none", borderRadius: "10px", padding: "15px", fontSize: "15px", fontWeight: "700", cursor: "pointer", marginTop: "24px", transition: "opacity 0.2s" },
-  btnLoading: { opacity: 0.7, cursor: "not-allowed" },
-  spinRow: { display: "flex", alignItems: "center", justifyContent: "center", gap: "10px" },
-  spinner: { width: "16px", height: "16px", border: "2px solid rgba(255,255,255,0.3)", borderTop: "2px solid #fff", borderRadius: "50%", animation: "spin 0.8s linear infinite", display: "inline-block" },
+  page: { display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", width: "100vw", background: "#020509", overflow: "hidden", fontFamily: "'Courier New', Consolas, monospace" },
+  grid: { position: "fixed", inset: 0, backgroundImage: "linear-gradient(#00d4ff04 1px, transparent 1px), linear-gradient(90deg, #00d4ff04 1px, transparent 1px)", backgroundSize: "32px 32px", pointerEvents: "none" },
+  scanLine: { position: "fixed", top: 0, left: 0, right: 0, height: "2px", background: "linear-gradient(90deg, transparent, #00d4ff30, transparent)", animation: "none", pointerEvents: "none", zIndex: 1 },
+  card: { position: "relative", zIndex: 2, width: "100%", maxWidth: "480px", background: "rgba(10,15,26,0.95)", border: "1px solid #00d4ff20", borderRadius: "6px", padding: "36px 40px", boxShadow: "0 0 40px #00d4ff08, 0 0 80px #00000080", display: "flex", flexDirection: "column", gap: "18px" },
+  logoArea: { display: "flex", alignItems: "center", gap: "14px" },
+  logoMark: { position: "relative", width: "44px", height: "44px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  logoText: { position: "relative", zIndex: 2, color: "#00d4ff", fontWeight: "900", fontSize: "13px", letterSpacing: "1px" },
+  logoRing: { position: "absolute", inset: 0, borderRadius: "50%", border: "2px solid #00d4ff50", boxShadow: "0 0 12px #00d4ff30, inset 0 0 12px #00d4ff15" },
+  logoPulse: { position: "absolute", inset: "-4px", borderRadius: "50%", border: "1px solid #00d4ff15" },
+  brandName: { color: "#e2e8f0", fontWeight: "900", fontSize: "14px", letterSpacing: "4px" },
+  brandSub: { color: "#334155", fontSize: "9px", letterSpacing: "2.5px", marginTop: "3px" },
+  divider: { height: "1px", background: "linear-gradient(90deg, transparent, #00d4ff20, transparent)" },
+  formTitle: { color: "#e2e8f0", fontWeight: "700", fontSize: "13px", letterSpacing: "3px" },
+  formSub: { color: "#334155", fontSize: "10px", letterSpacing: "0.5px", lineHeight: "1.6", marginTop: "-10px" },
+  fields: { display: "flex", flexDirection: "column", gap: "16px" },
+  fieldGroup: { display: "flex", flexDirection: "column", gap: "6px" },
+  label: { color: "#475569", fontSize: "9px", fontWeight: "700", letterSpacing: "2px" },
+  input: { background: "#020509", border: "1px solid #1e2533", borderRadius: "4px", padding: "11px 14px", color: "#e2e8f0", fontSize: "13px", outline: "none", fontFamily: "'Courier New', Consolas, monospace", letterSpacing: "0.3px", transition: "border-color 0.15s, box-shadow 0.15s" },
+  inputFocused: { borderColor: "#00d4ff40", boxShadow: "0 0 12px #00d4ff10" },
+  textarea: { resize: "vertical", lineHeight: "1.6" },
+  osGrid: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "6px" },
+  osChip: { background: "#020509", border: "1px solid #1e2533", color: "#475569", borderRadius: "3px", padding: "8px 6px", fontSize: "10px", cursor: "pointer", fontFamily: "'Courier New', Consolas, monospace", letterSpacing: "0.3px", transition: "all 0.15s", textAlign: "center" },
+  osChipActive: { background: "#00d4ff10", border: "1px solid #00d4ff50", color: "#00d4ff", boxShadow: "0 0 8px #00d4ff15" },
+  error: { color: "#ef4444", fontSize: "10px", fontWeight: "700", letterSpacing: "1.5px", padding: "10px 14px", background: "#ef444410", border: "1px solid #ef444430", borderRadius: "3px" },
+  submitBtn: { background: "linear-gradient(135deg, #0ea5e9, #0369a1)", border: "none", color: "#fff", padding: "14px", borderRadius: "4px", fontSize: "11px", fontWeight: "700", letterSpacing: "2.5px", cursor: "pointer", boxShadow: "0 0 20px #0ea5e930", marginTop: "4px" },
+  submitBtnLoading: { opacity: 0.7, cursor: "wait" },
+  loadingRow: { display: "flex", alignItems: "center", justifyContent: "center", gap: "10px" },
+  spinner: { width: "10px", height: "10px", borderRadius: "50%", border: "2px solid #ffffff40", borderTopColor: "#fff", display: "inline-block" },
+  footer: { display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", color: "#1e2533", fontSize: "9px", letterSpacing: "2px" },
+  encIcon: { fontSize: "10px" },
 };
