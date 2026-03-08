@@ -134,6 +134,7 @@ function AgentFlow() {
         sessionId={chatState.session.sessionId}
         senderName={agentName}
         senderRole="agent"
+        summary={chatState.summary}
         onClose={() => setChatState(null)}
       />
     );

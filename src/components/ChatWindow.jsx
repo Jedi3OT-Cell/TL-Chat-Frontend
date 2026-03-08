@@ -1,12 +1,12 @@
 // ChatWindow.jsx — shared by customer and agent after connecting
 import { useState, useEffect, useRef } from "react";
 
-export default function ChatWindow({ connection, sessionId, senderName, senderRole, agentName, onClose }) {
+export default function ChatWindow({ connection, sessionId, senderName, senderRole, agentName, onClose, summary: initialSummary }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [typingUser, setTypingUser] = useState(null);
   const [sessionClosed, setSessionClosed] = useState(false);
-  const [summary, setSummary] = useState(null);
+  const [summary, setSummary] = useState(initialSummary ?? null);
   const [summaryOpen, setSummaryOpen] = useState(true);
   const bottomRef = useRef(null);
   const typingTimer = useRef(null);

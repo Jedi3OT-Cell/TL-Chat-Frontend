@@ -47,7 +47,7 @@ export default function AgentDashboard({ agentName, onJoinSession }) {
     const conn = connRef.current;
     connRef.handedOff = true;
     await conn.invoke("JoinSession", session.sessionId, agentName);
-    onJoinSession({ connection: conn, session, agentName });
+    onJoinSession({ connection: conn, session, agentName, summary: selected?.summary });
   };
 
   const waitTime = (startedAt) => {
