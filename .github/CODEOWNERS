@@ -1,0 +1,10 @@
+# Every change requires review from the owners listed here.
+# @Jedi3OT-Cell is currently the sole owner. When a dedicated security owner (or team,
+# e.g. @Jedi3OT-Cell/security) exists, add that handle to the security-sensitive paths below
+# (config, workflows, scripts, threat model) so those changes require a second, security review.
+*                       @Jedi3OT-Cell
+/src/lib/config.js      @Jedi3OT-Cell
+/src/App.jsx            @Jedi3OT-Cell
+/.github/               @Jedi3OT-Cell
+/scripts/               @Jedi3OT-Cell
+/docs/THREAT-MODEL.md   @Jedi3OT-Cell

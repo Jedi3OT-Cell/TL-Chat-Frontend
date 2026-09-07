@@ -1,6 +1,23 @@
-// ChatWindow.jsx — E.D.I.T.H JARVIS Interface
+// ChatWindow.jsx — ThreatLocker Support Console
 import { useState, useEffect, useRef } from "react";
+import { BACKEND } from "../lib/config";
+import { moduleColor, threatColor } from "../lib/classification";
 
+/**
+ * Live chat surface shared by customers and agents. Subscribes to the hub for incoming
+ * messages, typing indicators, agent-join and session-close events; sends messages and
+ * typing signals through guarded invokes; and, for customers, collects a post-session
+ * rating. All hub calls are defensive so a dropped socket never crashes or wedges the UI.
+ *
+ * @param {object} props
+ * @param {object|null} props.connection Live hub connection (may briefly be null).
+ * @param {string} props.sessionId Chat session identifier.
+ * @param {string} props.senderName Display name of the local participant.
+ * @param {"agent"|"customer"} props.senderRole Role of the local participant.
+ * @param {object} [props.summary] E.D.I.T.H analysis shown to the agent.
+ * @param {() => void} props.onClose Called when the local participant leaves/closes the session.
+ * @returns {JSX.Element}
+ */
 export default function ChatWindow({ connection, sessionId, senderName, senderRole, summary, onClose }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
@@ -28,142 +45,235 @@ export default function ChatWindow({ connection, sessionId, senderName, senderRo
       connection.off("AgentJoined");
       connection.off("SessionClosed");
     };
-  }, [connection]);
+  }, [connection, sessionId]);
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, typing]);
 
+  const [sendFailed, setSendFailed] = useState(false);
+
+  /** Send the trimmed composer text via `SendMessage`; clear the input on success, or flag a failure to let the user retry. */
   const sendMessage = async () => {
-    if (!input.trim() || sessionClosed) return;
-    await connection.invoke("SendMessage", sessionId, senderName, input.trim(), senderRole);
-    setInput("");
-    await connection.invoke("TypingIndicator", sessionId, senderName, false);
+    if (!input.trim() || sessionClosed || !connection) return;
+    const text = input.trim();
+    try {
+      await connection.invoke("SendMessage", sessionId, senderName, text, senderRole);
+      setInput("");
+      setSendFailed(false);
+      connection.invoke("TypingIndicator", sessionId, senderName, false).catch(() => {});
+    } catch {
+      // Keep the text so the user can retry; surface the failure.
+      setSendFailed(true);
+    }
   };
 
+  /**
+   * Composer keydown handler: Enter (without Shift) sends; any other key emits a debounced
+   * typing indicator that auto-clears after 2s of inactivity.
+   * @param {import("react").KeyboardEvent} e
+   */
   const handleKeyDown = async (e) => {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); await sendMessage(); return; }
-    await connection.invoke("TypingIndicator", sessionId, senderName, true);
+    if (!connection) return;
+    connection.invoke("TypingIndicator", sessionId, senderName, true).catch(() => {});
     clearTimeout(typingTimer.current);
-    typingTimer.current = setTimeout(() => connection.invoke("TypingIndicator", sessionId, senderName, false), 2000);
+    typingTimer.current = setTimeout(
+      () => connection?.invoke("TypingIndicator", sessionId, senderName, false).catch(() => {}),
+      2000
+    );
   };
 
+  /**
+   * Leave the session: an agent additionally closes it server-side via `CloseSession`.
+   * Runs through `finally` so the socket is stopped and `onClose` fires even if the invoke
+   * or stop rejects, ensuring the participant is never wedged in a dead session.
+   */
   const handleClose = async () => {
-    if (senderRole === "agent") await connection.invoke("CloseSession", sessionId);
-    onClose();
+    try {
+      if (senderRole === "agent" && connection) await connection.invoke("CloseSession", sessionId);
+    } catch {
+      // ignore — we are leaving regardless
+    } finally {
+      // Stop the socket we were handed so it is not orphaned after we unmount.
+      try { await connection?.stop(); } catch { /* already stopped */ }
+      onClose();
+    }
   };
 
-  const moduleColor = (mod) => {
-    if (!mod) return "#475569";
-    const m = mod.toLowerCase();
-    if (m.includes("application")) return "#0ea5e9";
-    if (m.includes("ringfencing")) return "#a855f7";
-    if (m.includes("storage")) return "#f59e0b";
-    if (m.includes("network")) return "#22c55e";
-    if (m.includes("elevation")) return "#ef4444";
-    if (m.includes("configuration")) return "#06b6d4";
-    return "#475569";
+  /**
+   * Submit the customer's 1–5 star post-session rating to the backend, marking it recorded
+   * only once the request succeeds.
+   * @param {number} star Selected rating, 1–5.
+   */
+  const submitRating = async (star) => {
+    setRating(star);
+    try {
+      const res = await fetch(`${BACKEND}/api/chat/session/${sessionId}/rating`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rating: star }),
+      });
+      if (res.ok) setRated(true);
+    } catch {
+      // leave un-rated so the customer can retry
+    }
   };
 
-  const threatColors = {
-    LOW: { bg: "#22c55e20", color: "#22c55e", border: "#22c55e40" },
-    MEDIUM: { bg: "#f59e0b20", color: "#f59e0b", border: "#f59e0b40" },
-    HIGH: { bg: "#ef444420", color: "#ef4444", border: "#ef444440" },
-    CRITICAL: { bg: "#ff004020", color: "#ff0040", border: "#ff004040" },
-  };
-  const tc = threatColors[summary?.threatLevel] || { bg: "#47556920", color: "#475569", border: "#47556940" };
+  const tc = threatColor(summary?.threatLevel);
 
   return (
-    <div style={s.page}>
-      <div style={s.grid} />
-      <div style={s.header}>
-        <div style={s.headerLeft}>
-          <div style={s.logoMark}><span style={s.logoText}>TL</span><div style={s.logoRing} /></div>
+    <div className="tl-app">
+      <div className="tl-topbar">
+        <div className="tl-row">
+          <span className="tl-brand-mark">TL</span>
           <div>
-            <div style={s.headerTitle}>SECURE SESSION</div>
-            <div style={s.headerSub}><span style={s.onlineDot} />{senderRole === "agent" ? `AGENT: ${senderName?.toUpperCase()}` : `SESSION: ${sessionId?.slice(0,8).toUpperCase()}`}</div>
+            <div className="tl-topbar__title">Support session</div>
+            <div className="tl-topbar__meta">
+              <span className="tl-dot tl-dot--online" />
+              {senderRole === "agent"
+                ? `Agent · ${senderName?.toUpperCase()}`
+                : `Session ${sessionId?.slice(0, 8).toUpperCase()}`}
+            </div>
           </div>
         </div>
-        <button style={s.closeBtn} onClick={handleClose}>{senderRole === "agent" ? "CLOSE SESSION ✕" : "LEAVE ✕"}</button>
+        <button type="button" className="tl-btn tl-btn--danger tl-btn--sm" onClick={handleClose}>
+          {senderRole === "agent" ? "CLOSE SESSION" : "LEAVE"}
+        </button>
       </div>
 
-      <div style={s.body}>
+      <div className="tl-body">
         {senderRole === "agent" && summary && (
-          <div style={s.sidebar}>
-            <div style={s.sidebarHeader}><span style={s.edithBadge}>E.D.I.T.H</span><span style={s.edithLabel}>ANALYSIS</span></div>
-            <div style={s.block}><div style={s.blockLabel}>MODULE</div><div style={{ ...s.blockValue, color: moduleColor(summary.moduleClassification) }}>{summary.moduleClassification || "—"}</div></div>
-            <div style={s.block}><div style={s.blockLabel}>ISSUE TYPE</div><div style={s.blockValueSm}>{summary.issueTypeClassification || "—"}</div></div>
-            {summary.confidenceScore !== undefined && (
-              <div style={s.block}>
-                <div style={s.blockLabel}>CONFIDENCE — {summary.confidenceScore}%</div>
-                <div style={s.confBar}><div style={{ ...s.confFill, width: `${summary.confidenceScore}%`, background: summary.confidenceScore >= 80 ? "#22c55e" : summary.confidenceScore >= 60 ? "#f59e0b" : "#ef4444" }} /></div>
+          <aside className="tl-chat-aside">
+            <div className="tl-chat-aside__head">
+              <span className="tl-badge">E.D.I.T.H</span>
+              <span className="tl-eyebrow">Analysis</span>
+            </div>
+
+            <div>
+              <div className="tl-eyebrow">Module</div>
+              <div style={{ color: moduleColor(summary.moduleClassification), fontWeight: 700, marginTop: 4 }}>
+                {summary.moduleClassification || "—"}
               </div>
-            )}
-            {summary.threatLevel && (
-              <div style={s.block}>
-                <div style={s.blockLabel}>THREAT LEVEL</div>
-                <div style={{ ...s.threatPill, background: tc.bg, color: tc.color, borderColor: tc.border }}>
-                  <span style={{ ...s.threatDot, background: tc.color }} />{summary.threatLevel}
+            </div>
+
+            <div>
+              <div className="tl-eyebrow">Issue type</div>
+              <div className="tl-kv" style={{ marginTop: 4 }}>{summary.issueTypeClassification || "—"}</div>
+            </div>
+
+            {summary.confidenceScore !== undefined && (
+              <div>
+                <div className="tl-eyebrow">Confidence — {summary.confidenceScore}%</div>
+                <div className="tl-bar" style={{ marginTop: 6 }}>
+                  <div
+                    className="tl-bar__fill"
+                    style={{
+                      width: `${summary.confidenceScore}%`,
+                      background: summary.confidenceScore >= 80 ? "var(--tl-success)" : summary.confidenceScore >= 60 ? "var(--tl-warn)" : "var(--tl-danger)",
+                    }}
+                  />
                 </div>
               </div>
             )}
+
+            {summary.threatLevel && (
+              <div>
+                <div className="tl-eyebrow">Threat level</div>
+                <div className="tl-badge" style={{ marginTop: 6, background: tc.bg, color: tc.color, borderColor: tc.border }}>
+                  <span className="tl-dot" style={{ background: tc.color }} />
+                  {summary.threatLevel}
+                </div>
+              </div>
+            )}
+
             {summary.recommendedSteps?.length > 0 && (
-              <div style={s.block}>
-                <div style={s.blockLabel}>RECOMMENDED STEPS</div>
-                {summary.recommendedSteps.map((step, i) => (
-                  <div key={i} style={s.step}><span style={s.stepNum}>{i+1}</span><span style={s.stepText}>{step}</span></div>
-                ))}
+              <div>
+                <div className="tl-eyebrow">Recommended steps</div>
+                <div className="tl-steps">
+                  {summary.recommendedSteps.map((step, i) => (
+                    <div key={i} className="tl-step">
+                      <span className="tl-step__num">{i + 1}</span>
+                      <span className="tl-step__text">{step}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
+
             {summary.suggestedKBArticles?.length > 0 && (
-              <div style={s.block}>
-                <div style={s.blockLabel}>KB ARTICLES</div>
+              <div>
+                <div className="tl-eyebrow">KB articles</div>
                 {summary.suggestedKBArticles.map((kb, i) => (
-                  <a key={i} href={`https://www.google.com/search?q=ThreatLocker+${encodeURIComponent(kb)}`} target="_blank" rel="noopener noreferrer" style={s.kbLink}>▶ {kb}</a>
+                  <a
+                    key={i}
+                    href={`https://threatlocker.kb.help/?s=${encodeURIComponent(kb)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="tl-kb-link"
+                  >
+                    {kb}
+                  </a>
                 ))}
               </div>
             )}
+
             {summary.escalationRecommended && (
-              <div style={s.escalation}><div style={s.escalationTitle}>⚠ ESCALATE</div><div style={s.escalationReason}>{summary.escalationReason}</div></div>
+              <div className="tl-alert tl-alert--error" style={{ marginBottom: 0 }}>
+                <div style={{ fontWeight: 700, marginBottom: 4 }}>Escalate</div>
+                <div>{summary.escalationReason}</div>
+              </div>
             )}
-          </div>
+          </aside>
         )}
 
-        <div style={s.chatArea}>
-          <div style={s.messages}>
+        <div className="tl-chat">
+          <div className="tl-messages">
             {messages.map((msg, i) => {
               const isMe = msg.senderName === senderName;
               const isSystem = msg.senderRole === "system";
               return (
-                <div key={i} style={{ ...s.row, justifyContent: isSystem ? "center" : isMe ? "flex-end" : "flex-start" }}>
+                <div
+                  key={msg.timestamp ? `${msg.timestamp}-${i}` : i}
+                  className={`tl-msg-row ${isSystem ? "tl-msg-row--system" : isMe ? "tl-msg-row--me" : "tl-msg-row--them"}`}
+                >
                   {isSystem ? (
-                    <div style={s.systemMsg}>{msg.message}</div>
+                    <div className="tl-system-msg">{msg.message}</div>
                   ) : (
-                    <div style={{ ...s.bubble, ...(isMe ? s.bubbleMe : s.bubbleThem) }}>
-                      <div style={s.sender}>{msg.senderName?.toUpperCase()}</div>
-                      <div style={s.msgText}>{msg.message}</div>
-                      <div style={s.msgTime}>{new Date(msg.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>
+                    <div className={`tl-bubble ${isMe ? "tl-bubble--me" : "tl-bubble--them"}`}>
+                      <div className="tl-bubble__sender">{msg.senderName?.toUpperCase()}</div>
+                      <div className="tl-bubble__text">{msg.message}</div>
+                      <div className="tl-bubble__time">{msg.timestamp && Number.isFinite(new Date(msg.timestamp).getTime()) ? new Date(msg.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : ""}</div>
                     </div>
                   )}
                 </div>
               );
             })}
-            {typing && <div style={s.typing}>{typing} IS TYPING...</div>}
+            {typing && <div className="tl-typing">{typing} IS TYPING...</div>}
             <div ref={bottomRef} />
           </div>
 
           {sessionClosed && senderRole === "customer" && !rated && (
-            <div style={s.ratingBox}>
-              <div style={s.ratingTitle}>HOW WAS YOUR EXPERIENCE?</div>
-              <div style={s.stars}>{[1,2,3,4,5].map(star => (
-                <button key={star} style={{ ...s.star, color: star <= rating ? "#f59e0b" : "#1e2533" }} onClick={() => { setRating(star); setRated(true); fetch(`${BACKEND}/api/chat/session/${sessionId}/rating`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ rating: star }) }).catch(() => {}); }}>★</button>
+            <div className="tl-rating">
+              <div className="tl-eyebrow">How was your experience?</div>
+              <div className="tl-stars">{[1,2,3,4,5].map(star => (
+                <button
+                  key={star}
+                  type="button"
+                  aria-label={`Rate ${star} star${star > 1 ? "s" : ""}`}
+                  aria-pressed={star <= rating}
+                  className={`tl-star${star <= rating ? " tl-star--on" : ""}`}
+                  onClick={() => submitRating(star)}
+                >★</button>
               ))}</div>
             </div>
           )}
-          {rated && <div style={s.ratedMsg}>✓ THANK YOU FOR YOUR FEEDBACK</div>}
+          {rated && <div className="tl-rating" style={{ color: "var(--tl-success)", fontWeight: 600 }}>THANK YOU FOR YOUR FEEDBACK</div>}
 
+          {sendFailed && <div className="tl-alert tl-alert--error" style={{ margin: "0 18px" }}>Message failed to send. Retry.</div>}
           {!sessionClosed && (
-            <div style={s.inputRow}>
-              <input style={s.input} placeholder="TYPE YOUR MESSAGE..." value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKeyDown} />
-              <button style={s.sendBtn} onClick={sendMessage}>SEND ▶</button>
+            <div className="tl-composer">
+              <label htmlFor="chat-input" className="tl-sr-only">Message</label>
+              <input id="chat-input" name="message" maxLength={2000} className="tl-input" style={{ flex: 1 }} placeholder="TYPE YOUR MESSAGE..." value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKeyDown} />
+              <button type="button" className="tl-btn tl-btn--primary" onClick={sendMessage}>SEND</button>
             </div>
           )}
         </div>
@@ -171,56 +281,3 @@ export default function ChatWindow({ connection, sessionId, senderName, senderRo
     </div>
   );
 }
-
-const s = {
-  page: { display: "flex", flexDirection: "column", height: "100vh", width: "100vw", background: "#020509", overflow: "hidden", fontFamily: "'Courier New', Consolas, monospace", color: "#94a3b8" },
-  grid: { position: "fixed", inset: 0, backgroundImage: "linear-gradient(#00d4ff04 1px, transparent 1px), linear-gradient(90deg, #00d4ff04 1px, transparent 1px)", backgroundSize: "32px 32px", pointerEvents: "none", zIndex: 0 },
-  header: { position: "relative", zIndex: 2, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 24px", background: "rgba(2,5,9,0.98)", borderBottom: "1px solid #00d4ff20" },
-  headerLeft: { display: "flex", alignItems: "center", gap: "14px" },
-  logoMark: { position: "relative", width: "38px", height: "38px", display: "flex", alignItems: "center", justifyContent: "center" },
-  logoText: { position: "relative", zIndex: 1, color: "#00d4ff", fontWeight: "900", fontSize: "12px", letterSpacing: "1px" },
-  logoRing: { position: "absolute", inset: 0, borderRadius: "50%", border: "2px solid #00d4ff50", boxShadow: "0 0 10px #00d4ff30" },
-  headerTitle: { color: "#e2e8f0", fontWeight: "700", fontSize: "12px", letterSpacing: "3px" },
-  headerSub: { display: "flex", alignItems: "center", gap: "6px", color: "#475569", fontSize: "9px", letterSpacing: "2px", marginTop: "3px" },
-  onlineDot: { width: "5px", height: "5px", borderRadius: "50%", background: "#22c55e", boxShadow: "0 0 5px #22c55e" },
-  closeBtn: { background: "transparent", border: "1px solid #ef444430", color: "#ef4444", borderRadius: "3px", padding: "7px 16px", fontSize: "9px", fontWeight: "700", letterSpacing: "1.5px", cursor: "pointer" },
-  body: { position: "relative", zIndex: 1, display: "flex", flex: 1, overflow: "hidden" },
-  sidebar: { width: "280px", minWidth: "280px", background: "rgba(2,5,9,0.95)", borderRight: "1px solid #00d4ff15", overflowY: "auto", padding: "16px 14px", display: "flex", flexDirection: "column", gap: "14px" },
-  sidebarHeader: { display: "flex", alignItems: "center", gap: "8px", paddingBottom: "12px", borderBottom: "1px solid #00d4ff15" },
-  edithBadge: { background: "linear-gradient(135deg, #00d4ff, #0369a1)", color: "#000", fontSize: "8px", fontWeight: "900", padding: "2px 7px", borderRadius: "2px", letterSpacing: "1px" },
-  edithLabel: { color: "#334155", fontSize: "9px", fontWeight: "700", letterSpacing: "2px" },
-  block: { display: "flex", flexDirection: "column", gap: "5px" },
-  blockLabel: { color: "#334155", fontSize: "9px", fontWeight: "700", letterSpacing: "2px" },
-  blockValue: { fontSize: "13px", fontWeight: "700" },
-  blockValueSm: { color: "#64748b", fontSize: "11px", lineHeight: "1.5" },
-  confBar: { height: "4px", background: "#1e2533", borderRadius: "2px", overflow: "hidden" },
-  confFill: { height: "100%", borderRadius: "2px" },
-  threatPill: { display: "inline-flex", alignItems: "center", gap: "5px", fontSize: "9px", fontWeight: "700", padding: "3px 8px", borderRadius: "2px", border: "1px solid", letterSpacing: "1.5px", alignSelf: "flex-start" },
-  threatDot: { width: "5px", height: "5px", borderRadius: "50%" },
-  step: { display: "flex", gap: "8px", alignItems: "flex-start" },
-  stepNum: { width: "14px", height: "14px", borderRadius: "2px", background: "#00d4ff10", border: "1px solid #00d4ff30", color: "#00d4ff", fontSize: "8px", fontWeight: "700", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: "1px" },
-  stepText: { color: "#475569", fontSize: "11px", lineHeight: "1.5" },
-  kbLink: { color: "#0ea5e9", fontSize: "11px", padding: "5px 8px", background: "#0a0f1a", border: "1px solid #0ea5e920", borderRadius: "3px", textDecoration: "none", lineHeight: "1.4", display: "block" },
-  escalation: { padding: "10px 12px", background: "#ef444410", border: "1px solid #ef444430", borderRadius: "4px" },
-  escalationTitle: { color: "#ef4444", fontSize: "9px", fontWeight: "700", letterSpacing: "1px", marginBottom: "4px" },
-  escalationReason: { color: "#64748b", fontSize: "11px", lineHeight: "1.4" },
-  chatArea: { flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" },
-  messages: { flex: 1, overflowY: "auto", padding: "20px 24px", display: "flex", flexDirection: "column", gap: "10px" },
-  row: { display: "flex" },
-  bubble: { maxWidth: "65%", padding: "10px 14px", borderRadius: "6px", display: "flex", flexDirection: "column", gap: "4px" },
-  bubbleMe: { background: "linear-gradient(135deg, #0369a1, #0284c7)", border: "1px solid #0ea5e940" },
-  bubbleThem: { background: "#0a0f1a", border: "1px solid #1e2533" },
-  sender: { fontSize: "8px", fontWeight: "700", letterSpacing: "1.5px", color: "#94a3b880" },
-  msgText: { color: "#e2e8f0", fontSize: "13px", lineHeight: "1.5", wordBreak: "break-word" },
-  msgTime: { fontSize: "8px", color: "#94a3b840", alignSelf: "flex-end", letterSpacing: "0.5px" },
-  systemMsg: { background: "#00d4ff08", border: "1px solid #00d4ff15", borderRadius: "3px", padding: "5px 14px", fontSize: "9px", color: "#334155", letterSpacing: "1.5px" },
-  typing: { color: "#334155", fontSize: "9px", letterSpacing: "2px", padding: "4px 8px" },
-  ratingBox: { padding: "16px 24px", borderTop: "1px solid #00d4ff15", display: "flex", flexDirection: "column", alignItems: "center", gap: "10px" },
-  ratingTitle: { color: "#475569", fontSize: "9px", fontWeight: "700", letterSpacing: "2px" },
-  stars: { display: "flex", gap: "6px" },
-  star: { background: "none", border: "none", fontSize: "28px", cursor: "pointer", transition: "color 0.15s" },
-  ratedMsg: { padding: "12px 24px", borderTop: "1px solid #00d4ff15", textAlign: "center", color: "#22c55e", fontSize: "9px", letterSpacing: "2px" },
-  inputRow: { display: "flex", gap: "10px", padding: "16px 24px", borderTop: "1px solid #00d4ff15", background: "rgba(2,5,9,0.98)" },
-  input: { flex: 1, background: "#020509", border: "1px solid #1e2533", borderRadius: "4px", padding: "11px 14px", color: "#e2e8f0", fontSize: "13px", outline: "none", fontFamily: "'Courier New', Consolas, monospace" },
-  sendBtn: { background: "linear-gradient(135deg, #0ea5e9, #0369a1)", border: "none", color: "#fff", padding: "11px 22px", borderRadius: "4px", fontSize: "10px", fontWeight: "700", letterSpacing: "2px", cursor: "pointer" },
-};
