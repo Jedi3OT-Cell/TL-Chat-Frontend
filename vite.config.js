@@ -18,15 +18,20 @@ function enforceSecureBackend() {
           'Demo mode is for local/dev use only; unset it for production builds.'
         )
       }
-      // Mirror config.js: an unset VITE_BACKEND_URL defaults to http://localhost:5000, which is
-      // still a plaintext backend and must be rejected in production. Compare case-insensitively.
-      const backend = (env.VITE_BACKEND_URL || 'http://localhost:5000').trim()
-      const allow = env.VITE_ALLOW_INSECURE_BACKEND === 'true'
-      if (backend.toLowerCase().startsWith('http://') && !allow) {
+      // Mirror config.js: an unset (or whitespace-only) VITE_BACKEND_URL defaults to
+      // http://localhost:5000. Trim FIRST, then fall back, so "   " does not slip through as an
+      // empty string that fails the http:// test. Compare case-insensitively.
+      const backend = (env.VITE_BACKEND_URL || '').trim() || 'http://localhost:5000'
+      // `vite build` is always a production build (NODE_ENV=production), so this rejects a
+      // plaintext or unset backend for EVERY build — there is no override and no plaintext bundle
+      // can be produced. For local development against an http backend, use the dev server
+      // (`npm run dev`), which is not a build and is not subject to this guard.
+      if (backend.toLowerCase().startsWith('http://')) {
         throw new Error(
           '[enforce-secure-backend] Refusing to build a production bundle pointed at a plaintext ' +
           'http:// backend (VITE_BACKEND_URL=' + (env.VITE_BACKEND_URL || '<unset, defaults to http://localhost:5000>') + '). ' +
-          'Set an https:// VITE_BACKEND_URL, or VITE_ALLOW_INSECURE_BACKEND=true for a local demo build.'
+          'Builds require an https:// VITE_BACKEND_URL. For local development against an http ' +
+          'backend, use the dev server (`npm run dev`) instead of a build.'
         )
       }
     },

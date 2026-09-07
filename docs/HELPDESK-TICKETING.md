@@ -34,7 +34,8 @@ Agent workstation ──VPN/ZTNA──▶ Internal reverse proxy ──▶ LiveC
   `support-chat.internal.<company>.com`.
 - Distribute the internal root to endpoints via GPO/MDM so browsers trust it without warnings.
 - Because the cert is trusted internally, `VITE_BACKEND_URL` is `https://…` and the build-time
-  `enforceSecureBackend` guard passes (no `VITE_ALLOW_INSECURE_BACKEND` needed).
+  `enforceSecureBackend` guard passes. (Production builds are https-only with no plaintext
+  override, so the internal deployment must use the internal-CA https endpoint.)
 
 ### Reverse proxy / access
 - HAProxy or IIS ARR terminates TLS and forwards `/` to the static bundle and `/api` + `/chathub`

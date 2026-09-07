@@ -47,7 +47,10 @@ change, from a one-line fix to a portal integration, follows the same path.
   | `VITE_PORTAL_ORIGINS` | deployment-specific | allow-list of exact origins permitted to post the auth token when embedded |
   | `VITE_EMBED_MODE` | deployment-specific | `true` hides standalone login/landing chrome when framed by the portal |
   | `VITE_DEMO_MODE` | dev/local only | scripted in-memory hub; **forced off and rejected in production builds** |
-  | `VITE_ALLOW_INSECURE_BACKEND` | dev/local only | escape hatch to allow an `http://` backend in a non-prod build |
+
+  There is intentionally **no** flag to allow an `http://` backend in a build — a plaintext or
+  unset `VITE_BACKEND_URL` fails the build outright (every `vite build` is a production build).
+  For local development against an http backend, use the dev server (`npm run dev`).
 
   Only the deployment-specific variables differ between dev / staging / prod; the dev-only variables
   must never be set for a production build.

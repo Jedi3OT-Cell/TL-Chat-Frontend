@@ -33,14 +33,12 @@ export const IS_DEMO =
 
 /**
  * Warn (do NOT throw — throwing at module load white-screens the whole SPA) when a
- * production bundle points at a plaintext backend. The hard guarantee is enforced at
- * BUILD time by the enforceSecureBackend plugin in vite.config.js, which fails the
- * build so a misconfiguration is caught in CI/deploy rather than in the user's browser.
+ * production bundle points at a plaintext backend. This is belt-and-suspenders: the hard
+ * guarantee is enforced at BUILD time by the enforceSecureBackend plugin in vite.config.js,
+ * which fails a production build outright on an http:// or unset backend (no escape hatch),
+ * so a real production bundle can never actually reach this branch.
  */
-export const INSECURE_BACKEND =
-  IS_PRODUCTION &&
-  BACKEND.startsWith("http://") &&
-  import.meta.env.VITE_ALLOW_INSECURE_BACKEND !== "true";
+export const INSECURE_BACKEND = IS_PRODUCTION && BACKEND.startsWith("http://");
 
 if (INSECURE_BACKEND && typeof console !== "undefined") {
   console.warn(
