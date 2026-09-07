@@ -58,14 +58,14 @@ jobs:
       # Named "verification-build" so nobody mistakes it for a deployable bundle — it is built
       # against the placeholder backend above and exists only for inspection of the CI output.
       - name: Upload verification build artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: verification-build-${{ github.sha }}
           path: dist
           retention-days: 7
 
       - name: Upload coverage
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-${{ github.sha }}
           path: coverage
