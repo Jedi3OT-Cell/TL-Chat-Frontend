@@ -10,7 +10,7 @@
 // security control. Never rely on it to hide secrets — anything shipped to
 // the browser must be assumed readable. See docs/THREAT-MODEL.md.
 
-import { readdirSync, readFileSync, writeFileSync, statSync } from 'node:fs';
+import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import JavaScriptObfuscator from 'javascript-obfuscator';
 
@@ -51,10 +51,11 @@ let processed = 0;
 for (const file of readdirSync(ASSETS)) {
   if (!file.endsWith('.js') || SKIP.test(file)) continue;
   const path = join(ASSETS, file);
-  const before = statSync(path).size;
-  const out = JavaScriptObfuscator.obfuscate(readFileSync(path, 'utf8'), options).getObfuscatedCode();
+  // Read once and derive the size from the content — no stat-then-use (TOCTOU).
+  const source = readFileSync(path, 'utf8');
+  const out = JavaScriptObfuscator.obfuscate(source, options).getObfuscatedCode();
   writeFileSync(path, out);
-  console.log(`[obfuscate] ${file}: ${before} -> ${out.length} bytes`);
+  console.log(`[obfuscate] ${file}: ${source.length} -> ${out.length} bytes`);
   processed++;
 }
 if (processed === 0) {
