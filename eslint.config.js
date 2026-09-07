@@ -26,4 +26,11 @@ export default defineConfig([
       'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
     },
   },
+  {
+    // Node-context tooling and Playwright E2E specs run outside the browser.
+    files: ['playwright.config.js', 'vite.config.js', 'scripts/**/*.{js,mjs}', 'e2e/**/*.js'],
+    languageOptions: {
+      globals: { ...globals.node },
+    },
+  },
 ])

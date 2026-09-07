@@ -1,0 +1,32 @@
+# CodeRabbit configuration — https://docs.coderabbit.ai/reference/configuration
+# Reviews run automatically on pull requests once the CodeRabbit GitHub App is
+# installed on this repository.
+language: en-US
+reviews:
+  profile: assertive
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  review_status: true
+  auto_review:
+    enabled: true
+    drafts: false
+    base_branches:
+      - main
+  path_instructions:
+    - path: "src/**/*.{js,jsx}"
+      instructions: >-
+        Flag any hardcoded backend URL (all backend access must go through
+        src/lib/config.js), any use of dangerouslySetInnerHTML or innerHTML,
+        any persistence of the auth token to localStorage/sessionStorage/cookies,
+        unguarded SignalR connection.invoke() calls in event handlers, and
+        fetch calls that do not check res.ok before using the body.
+    - path: "e2e/**/*.js"
+      instructions: >-
+        These are Playwright specs. Prefer role- and label-based locators and
+        do not assert on styling.
+  tools:
+    eslint:
+      enabled: true
+chat:
+  auto_reply: true

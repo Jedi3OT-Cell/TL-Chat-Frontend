@@ -1,9 +1,31 @@
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
+
+// Fail the BUILD (not the running page) if a production bundle would ship pointed at a
+// plaintext http:// backend. Runtime only warns; this is the hard guarantee, caught in CI.
+function enforceSecureBackend() {
+  return {
+    name: 'enforce-secure-backend',
+    apply: 'build',
+    configResolved(cfg) {
+      if (!cfg.isProduction) return
+      const env = loadEnv(cfg.mode, cfg.root, '')
+      const backend = (env.VITE_BACKEND_URL || '').trim()
+      const allow = env.VITE_ALLOW_INSECURE_BACKEND === 'true'
+      if (backend.startsWith('http://') && !allow) {
+        throw new Error(
+          '[enforce-secure-backend] Refusing to build a production bundle pointed at a plaintext ' +
+          'http:// backend (VITE_BACKEND_URL=' + (backend || '<unset>') + '). ' +
+          'Set an https:// VITE_BACKEND_URL, or VITE_ALLOW_INSECURE_BACKEND=true for a local demo build.'
+        )
+      }
+    },
+  }
+}
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => ({
-  plugins: [react()],
+  plugins: [react(), enforceSecureBackend()],
   build: {
     // Never ship source maps to production — they defeat minification/obfuscation
     // and expose internal structure. Enable locally with `vite build --mode debug`.

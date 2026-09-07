@@ -22,12 +22,25 @@ export const CHAT_HUB_URL = `${BACKEND}/chathub`;
 /** True when the bundle was built with `vite build` (production). */
 export const IS_PRODUCTION = import.meta.env.PROD === true;
 
+/** Standalone demo mode: an in-memory scripted hub + REST stub, no backend required. */
+export const IS_DEMO = import.meta.env.VITE_DEMO_MODE === "true";
+
 /**
- * Refuse to talk to a plaintext backend from a production bundle unless the
- * operator has explicitly opted in (local Docker demos, etc.).
+ * Warn (do NOT throw — throwing at module load white-screens the whole SPA) when a
+ * production bundle points at a plaintext backend. The hard guarantee is enforced at
+ * BUILD time by the enforceSecureBackend plugin in vite.config.js, which fails the
+ * build so a misconfiguration is caught in CI/deploy rather than in the user's browser.
  */
-if (IS_PRODUCTION && BACKEND.startsWith("http://") && import.meta.env.VITE_ALLOW_INSECURE_BACKEND !== "true") {
-  throw new Error("Production builds require an https:// VITE_BACKEND_URL (or VITE_ALLOW_INSECURE_BACKEND=true)");
+export const INSECURE_BACKEND =
+  IS_PRODUCTION &&
+  BACKEND.startsWith("http://") &&
+  import.meta.env.VITE_ALLOW_INSECURE_BACKEND !== "true";
+
+if (INSECURE_BACKEND && typeof console !== "undefined") {
+  console.warn(
+    "[config] Production bundle is pointed at a plaintext http:// backend. " +
+    "Use https:// for real deployments (see docs/THREAT-MODEL.md)."
+  );
 }
 
 /** Standard headers for authenticated JSON calls. */
