@@ -1,5 +1,6 @@
 // ChatWindow.jsx — E.D.I.T.H JARVIS Interface
 import { useState, useEffect, useRef } from "react";
+import { BACKEND } from "../lib/config";
 
 export default function ChatWindow({ connection, sessionId, senderName, senderRole, summary, onClose }) {
   const [messages, setMessages] = useState([]);
@@ -28,7 +29,7 @@ export default function ChatWindow({ connection, sessionId, senderName, senderRo
       connection.off("AgentJoined");
       connection.off("SessionClosed");
     };
-  }, [connection]);
+  }, [connection, sessionId]);
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, typing]);
 

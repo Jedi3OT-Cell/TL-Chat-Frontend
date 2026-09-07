@@ -6,7 +6,7 @@ import ChatWindow from "./components/ChatWindow";
 import AgentDashboard from "./components/AgentDashboard";
 import Analytics from "./components/Analytics";
 
-const BACKEND = "http://localhost:5000";
+import { BACKEND } from "./lib/config";
 
 // ── Landing Page ────────────────────────────────────────────────────────────
 function LandingPage() {
@@ -166,6 +166,7 @@ function AgentFlow() {
   if (!chatState) return (
     <AgentDashboard
       agentName={agent.displayName}
+      token={agent.token}
       onJoinSession={(state) => setChatState(state)}
     />
   );

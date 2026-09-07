@@ -1,0 +1,8 @@
+# Every change requires review from the maintainers listed here.
+# Security-sensitive paths additionally require the security owner.
+*                       @Jedi3OT-Cell
+/src/lib/config.js      @Jedi3OT-Cell
+/src/App.jsx            @Jedi3OT-Cell
+/.github/               @Jedi3OT-Cell
+/scripts/               @Jedi3OT-Cell
+/docs/THREAT-MODEL.md   @Jedi3OT-Cell

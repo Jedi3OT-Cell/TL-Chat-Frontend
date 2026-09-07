@@ -22,3 +22,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Environment files — never commit real endpoints or secrets
+.env
+.env.*
+!.env.example
+
+# Test artifacts
+coverage

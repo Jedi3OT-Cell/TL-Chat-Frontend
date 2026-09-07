@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 
 const AGENTS = ["Tillman", "Agent 2", "Agent 3"];
+const SURVEY_QUESTIONS = ["Issue resolved on first contact", "Agent was knowledgeable", "Response time was acceptable", "Would contact support again"];
 
 function generateMockData() {
   return AGENTS.map((name) => ({
@@ -15,6 +16,7 @@ function generateMockData() {
     availability: Math.floor(Math.random() * 20) + 78,
     resolved: Math.floor(Math.random() * 60) + 15,
     escalated: Math.floor(Math.random() * 10) + 2,
+    surveyScores: SURVEY_QUESTIONS.map(() => Math.floor(Math.random() * 25) + 70),
     reviews: [
       { rating: 5, comment: "Very helpful and fast resolution.", date: "2026-03-07" },
       { rating: 4, comment: "Knew exactly where to look in the registry.", date: "2026-03-06" },
@@ -55,7 +57,7 @@ function RatingBar({ value, max = 100, color }) {
   );
 }
 
-export default function Analytics({ agentName, onBack }) {
+export default function Analytics({ onBack }) {
   const [data] = useState(generateMockData);
   const [selected, setSelected] = useState(data[0]);
   const [tab, setTab] = useState("overview");
@@ -230,8 +232,8 @@ export default function Analytics({ agentName, onBack }) {
                 <div style={styles.surveysSub}>Surveys Completed</div>
               </div>
               <div style={styles.surveysList}>
-                {["Issue resolved on first contact", "Agent was knowledgeable", "Response time was acceptable", "Would contact support again"].map((q, i) => {
-                  const pct = Math.floor(Math.random() * 25) + 70;
+                {SURVEY_QUESTIONS.map((q, i) => {
+                  const pct = selected.surveyScores[i];
                   return (
                     <div key={i} style={styles.surveyRow}>
                       <div style={styles.surveyQ}>{q}</div>

@@ -2,7 +2,7 @@
 import { useState } from "react";
 import * as signalR from "@microsoft/signalr";
 
-const BACKEND = "http://localhost:5000";
+import { BACKEND, CHAT_HUB_URL } from "../lib/config";
 
 export default function CustomerIntakeForm({ onSessionStart }) {
   const [form, setForm] = useState({ customerName: "", organizationName: "", osPlatform: "", issueDescription: "" });
@@ -27,7 +27,7 @@ export default function CustomerIntakeForm({ onSessionStart }) {
       });
       const data = await res.json();
       const conn = new signalR.HubConnectionBuilder()
-        .withUrl(`${BACKEND}/chathub`)
+        .withUrl(CHAT_HUB_URL)
         .withAutomaticReconnect()
         .build();
       await conn.start();

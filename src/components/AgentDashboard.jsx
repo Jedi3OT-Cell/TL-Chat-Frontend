@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import * as signalR from "@microsoft/signalr";
 import Analytics from "./Analytics";
 
-const BACKEND = "http://localhost:5000";
+import { BACKEND, CHAT_HUB_URL, authHeaders } from "../lib/config";
 
 function moduleColor(mod) {
   if (!mod) return "#475569";
@@ -17,7 +17,7 @@ function moduleColor(mod) {
   return "#475569";
 }
 
-export default function AgentDashboard({ agentName, onJoinSession }) {
+export default function AgentDashboard({ agentName, token, onJoinSession }) {
   const [queue, setQueue] = useState([]);
   const [selected, setSelected] = useState(null);
   const [connected, setConnected] = useState(false);
@@ -31,8 +31,13 @@ export default function AgentDashboard({ agentName, onJoinSession }) {
   }, []);
 
   useEffect(() => {
+    const fetchQueue = () =>
+      fetch(`${BACKEND}/api/chat/queue`, { headers: authHeaders(token) })
+        .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`queue ${r.status}`))))
+        .then((data) => { if (Array.isArray(data)) setQueue(data); })
+        .catch(() => {});
     const conn = new signalR.HubConnectionBuilder()
-      .withUrl(`${BACKEND}/chathub`)
+      .withUrl(CHAT_HUB_URL, { accessTokenFactory: () => token || "" })
       .withAutomaticReconnect()
       .build();
     conn.on("AgentRegistered", () => setConnected(true));
@@ -47,22 +52,19 @@ export default function AgentDashboard({ agentName, onJoinSession }) {
       }
     });
     conn.onreconnected(() => {
-      conn.invoke("RegisterAsAgent", agentName);
-      fetch(`${BACKEND}/api/chat/queue`).then(r => r.json()).then(setQueue).catch(() => {});
+      conn.invoke("RegisterAsAgent", agentName).catch(() => {});
+      fetchQueue();
     });
-    conn.start().then(() => {
-      conn.invoke("RegisterAsAgent", agentName);
-      fetch(`${BACKEND}/api/chat/queue`)
-        .then((r) => r.json())
-        .then(setQueue)
-        .catch(() => {});
-    });
+    conn.start()
+      .then(() => {
+        conn.invoke("RegisterAsAgent", agentName).catch(() => {});
+        fetchQueue();
+      })
+      .catch(() => setConnected(false));
     connRef.current = conn;
-    const poll = setInterval(() => {
-      fetch(`${BACKEND}/api/chat/queue`).then(r => r.json()).then(setQueue).catch(() => {});
-    }, 5000);
+    const poll = setInterval(fetchQueue, 5000);
     return () => { clearInterval(poll); if (!connRef.handedOff) conn.stop(); };
-  }, [agentName]);
+  }, [agentName, token]);
 
   const handlePickUp = async (session) => {
     const conn = connRef.current;
@@ -72,7 +74,7 @@ export default function AgentDashboard({ agentName, onJoinSession }) {
   };
 
   const waitLabel = (ms) => {
-    const mins = Math.floor((Date.now() - new Date(ms)) / 60000);
+    const mins = Math.floor((time.getTime() - new Date(ms).getTime()) / 60000);
     if (mins < 1) return "JUST NOW";
     return `${mins}m AGO`;
   };
