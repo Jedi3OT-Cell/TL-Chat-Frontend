@@ -39,8 +39,18 @@ change, from a one-line fix to a portal integration, follows the same path.
 ## 6. Deployment
 - Static hosting behind TLS. Required response headers are listed in `docs/PORTAL-INTEGRATION.md`
   (CSP, HSTS, frame-ancestors).
-- `VITE_BACKEND_URL` is injected at build time per environment (dev / staging / prod). Nothing else
-  differs between environments.
+- Environment is injected at build time via `VITE_*` variables (see `.env.example`):
+
+  | Var | Scope | Notes |
+  |---|---|---|
+  | `VITE_BACKEND_URL` | deployment-specific | REST + SignalR origin; **must be `https://` in production** (build fails otherwise) |
+  | `VITE_PORTAL_ORIGINS` | deployment-specific | allow-list of exact origins permitted to post the auth token when embedded |
+  | `VITE_EMBED_MODE` | deployment-specific | `true` hides standalone login/landing chrome when framed by the portal |
+  | `VITE_DEMO_MODE` | dev/local only | scripted in-memory hub; **forced off and rejected in production builds** |
+  | `VITE_ALLOW_INSECURE_BACKEND` | dev/local only | escape hatch to allow an `http://` backend in a non-prod build |
+
+  Only the deployment-specific variables differ between dev / staging / prod; the dev-only variables
+  must never be set for a production build.
 
 ## 7. Operations & maintenance
 - Dependabot PRs weekly; merge minor/patch after CI passes, review majors.

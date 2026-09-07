@@ -174,7 +174,7 @@ export default function ChatWindow({ connection, sessionId, senderName, senderRo
                 {summary.suggestedKBArticles.map((kb, i) => (
                   <a
                     key={i}
-                    href={`https://www.google.com/search?q=ThreatLocker+${encodeURIComponent(kb)}`}
+                    href={`https://threatlocker.kb.help/?s=${encodeURIComponent(kb)}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="tl-kb-link"

@@ -34,9 +34,13 @@ if the lockfile is out of sync. That is what CI runs, so it is the honest local 
 npm run verify
 ```
 
-This runs, in order: **lint → unit tests → production build → dependency audit**. It is exactly the
-CI gate. If it passes locally, the pull request's CI will pass. Everything below explains each stage
-so you can run and understand them individually.
+This runs, in order: **lint → unit tests → production build → dependency audit**. It covers the same
+stages a contributor runs locally and catches the great majority of what CI would reject, but it is
+**not** a byte-for-byte replica of CI and does not guarantee every pull-request check will pass. CI
+additionally runs the **hardened** build (`build:hardened` with obfuscation), a **bundle-hygiene**
+grep (no source maps / plaintext secrets), and **CodeQL** static analysis in a separate workflow —
+none of which are part of local `verify`. Treat a green `verify` as "very likely to pass CI," then
+let CI confirm. Everything below explains each stage so you can run and understand them individually.
 
 ---
 

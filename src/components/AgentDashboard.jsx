@@ -16,6 +16,7 @@ export default function AgentDashboard({ agentName, token, onJoinSession, onLogo
   const [showAnalytics, setShowAnalytics] = useState(false);
   const connRef = useRef(null);
   const handedOff = useRef(false);
+  const fetchQueueRef = useRef(null);
 
   useEffect(() => {
     const t = setInterval(() => setTime(new Date()), 1000);
@@ -33,8 +34,15 @@ export default function AgentDashboard({ agentName, token, onJoinSession, onLogo
     const fetchQueue = () =>
       fetch(`${BACKEND}/api/chat/queue`, { headers: authHeaders(token) })
         .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`queue ${r.status}`))))
-        .then((data) => { if (Array.isArray(data)) { setQueue(data); setConnError(false); } })
+        .then((data) => {
+          // A well-formed queue is always an array; anything else means the endpoint or
+          // token is wrong, so surface it as a connection error rather than silently keeping
+          // the stale queue.
+          if (Array.isArray(data)) { setQueue(data); setConnError(false); }
+          else { setConnError(true); }
+        })
         .catch(() => setConnError(true));
+    fetchQueueRef.current = fetchQueue;
     const conn = createHubConnection({ token });
     conn.on("AgentRegistered", () => { setConnected(true); setConnError(false); });
     conn.on("QueueUpdated", (data) => {
@@ -69,7 +77,9 @@ export default function AgentDashboard({ agentName, token, onJoinSession, onLogo
       // component; only stop the socket if it was not handed off to the chat window.
       conn.off("AgentRegistered");
       conn.off("QueueUpdated");
-      if (!handedOff.current) conn.stop();
+      // stop() rejects if the socket is already closed/closing; swallow it so React never
+      // sees an unhandled rejection during unmount.
+      if (!handedOff.current) conn.stop().catch(() => {});
     };
   }, [agentName, token]);
 
@@ -131,7 +141,11 @@ export default function AgentDashboard({ agentName, token, onJoinSession, onLogo
             connError ? (
               <div className="tl-empty">
                 <div className="tl-h2">CONNECTION LOST</div>
-                <button type="button" className="tl-btn tl-btn--danger tl-btn--sm" onClick={() => window.location.reload()}>
+                <button
+                  type="button"
+                  className="tl-btn tl-btn--danger tl-btn--sm"
+                  onClick={() => { setConnError(false); fetchQueueRef.current?.(); }}
+                >
                   Retry
                 </button>
               </div>

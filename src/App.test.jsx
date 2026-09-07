@@ -1,10 +1,25 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import App from './App';
+
+// Stub the SignalR hub factory so the login test never opens a real connection or leaves a
+// queue-poll timer running once AgentDashboard mounts.
+vi.mock('./lib/hub', () => ({
+  createHubConnection: () => ({
+    on: () => {},
+    off: () => {},
+    onreconnected: () => {},
+    invoke: () => Promise.resolve(),
+    start: () => Promise.resolve(),
+    stop: () => Promise.resolve(),
+  }),
+}));
 
 describe('App routing', () => {
   // BrowserRouter reads jsdom's window.location, which persists across tests.
   beforeEach(() => window.history.pushState({}, '', '/'));
+  // Restore even if an assertion throws, so a failing test cannot leak spies into the next.
+  afterEach(() => vi.restoreAllMocks());
 
   it('renders the landing page with both entry points', () => {
     render(<App />);
@@ -36,6 +51,5 @@ describe('App routing', () => {
     await screen.findByText(/SUPPORT CONSOLE/i);
     expect(JSON.stringify(localStorage)).not.toContain('jwt-secret');
     expect(JSON.stringify(sessionStorage)).not.toContain('jwt-secret');
-    vi.restoreAllMocks();
   });
 });

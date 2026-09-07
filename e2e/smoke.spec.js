@@ -37,10 +37,10 @@ test.describe('Customer intake form', () => {
   test('degrades gracefully when the backend is unreachable', async ({ page }) => {
     await mockBackendDown(page);
     await page.goto('/chat');
-    await page.getByPlaceholder('Enter your name').fill('Ada Lovelace');
-    await page.getByPlaceholder(/Company or organization/i).fill('Analytical Engine Co');
+    await page.getByLabel('Full name').fill('Ada Lovelace');
+    await page.getByLabel('Organization').fill('Analytical Engine Co');
     await page.getByRole('button', { name: 'Windows 11' }).click();
-    await page.getByPlaceholder(/Provide as much detail/i).fill('Ringfencing is blocking Excel from opening a network share.');
+    await page.getByLabel(/Describe your issue/i).fill('Ringfencing is blocking Excel from opening a network share.');
     await page.getByRole('button', { name: /CONNECT TO SUPPORT/i }).click();
     await expect(page.getByText(/CONNECTION FAILED/i)).toBeVisible();
   });
@@ -108,7 +108,8 @@ test.describe('Agent login', () => {
 test.describe('Analytics', () => {
   test('route renders the command analytics view', async ({ page }) => {
     await page.goto('/analytics');
-    await expect(page.locator('body')).not.toBeEmpty();
+    // Assert on a named control that only the analytics view renders, not a bare non-empty body.
+    await expect(page.getByRole('button', { name: /BACK TO CONSOLE/i })).toBeVisible();
     // Agent names from the mock analytics dataset
     await expect(page.getByText(/Tillman/i).first()).toBeVisible();
   });

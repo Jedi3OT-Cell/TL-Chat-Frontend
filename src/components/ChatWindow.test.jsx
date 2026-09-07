@@ -60,4 +60,17 @@ describe('ChatWindow', () => {
   it('does not throw when connection is briefly null', () => {
     expect(() => render(<ChatWindow {...baseProps} connection={null} />)).not.toThrow();
   });
+
+  it('still calls onClose when CloseSession and stop both reject', async () => {
+    const onClose = vi.fn();
+    const conn = fakeConnection({
+      invoke: vi.fn().mockRejectedValue(new Error('offline')),
+      stop: vi.fn().mockRejectedValue(new Error('already closed')),
+    });
+    render(<ChatWindow {...baseProps} senderRole="agent" connection={conn} onClose={onClose} />);
+    fireEvent.click(screen.getByRole('button', { name: /CLOSE SESSION/i }));
+    // handleClose must reach onClose() through the finally block despite both rejections,
+    // so the agent is never stuck in a dead session.
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+  });
 });

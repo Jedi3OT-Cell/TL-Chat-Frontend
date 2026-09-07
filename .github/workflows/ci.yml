@@ -40,7 +40,11 @@ jobs:
       - name: Dependency audit (high+)
         run: npm audit --audit-level=high
 
-      - name: Production build (hardened)
+      # Verification build only: proves the hardened production build compiles and passes
+      # bundle hygiene. VITE_BACKEND_URL is baked in at build time, so this artifact points at
+      # the placeholder https://chat.invalid and is NOT deployable. Real deployments run
+      # build:hardened with the environment's actual https:// VITE_BACKEND_URL.
+      - name: Production build (hardened, verification only)
         env:
           VITE_BACKEND_URL: https://chat.invalid
         run: npm run build:hardened
@@ -51,10 +55,12 @@ jobs:
           if find dist -name '*.map' | grep -q .; then echo "source maps present in dist/"; exit 1; fi
           if grep -rEl "localhost:5000|BEGIN (RSA|EC|OPENSSH) PRIVATE KEY|AKIA[0-9A-Z]{16}" dist/; then echo "forbidden string in bundle"; exit 1; fi
 
-      - name: Upload build artifact
+      # Named "verification-build" so nobody mistakes it for a deployable bundle — it is built
+      # against the placeholder backend above and exists only for inspection of the CI output.
+      - name: Upload verification build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: dist-${{ github.sha }}
+          name: verification-build-${{ github.sha }}
           path: dist
           retention-days: 7
 

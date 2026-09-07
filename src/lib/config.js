@@ -22,8 +22,14 @@ export const CHAT_HUB_URL = `${BACKEND}/chathub`;
 /** True when the bundle was built with `vite build` (production). */
 export const IS_PRODUCTION = import.meta.env.PROD === true;
 
-/** Standalone demo mode: an in-memory scripted hub + REST stub, no backend required. */
-export const IS_DEMO = import.meta.env.VITE_DEMO_MODE === "true";
+/**
+ * Standalone demo mode: an in-memory scripted hub + REST stub, no backend required.
+ * Forced OFF in production builds even if VITE_DEMO_MODE=true leaks into the env, so a
+ * scripted hub can never reach real users. The build itself also rejects that combination
+ * (see enforceSecureBackend in vite.config.js).
+ */
+export const IS_DEMO =
+  import.meta.env.VITE_DEMO_MODE === "true" && import.meta.env.PROD !== true;
 
 /**
  * Warn (do NOT throw — throwing at module load white-screens the whole SPA) when a

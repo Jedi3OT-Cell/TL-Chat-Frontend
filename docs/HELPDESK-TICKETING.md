@@ -100,8 +100,12 @@ frontend.
 ### Frontend-side work (small, additive)
 - Add an **"Escalate to ticket"** button in `ChatWindow` (agent role) that calls the backend
   escalation endpoint and renders the returned ticket link — no PSA/portal credentials in the client.
-- Replace the KB-article links (already pointed at the ThreatLocker Help Center) with deep links to
-  the specific KB articles the E.D.I.T.H summary references, and, once a ticket exists, link it too.
+- KB-article links in both the agent detail panel and the chat window already point at the
+  ThreatLocker Help Center (`https://threatlocker.kb.help/?s=<term>`), not a public search engine.
+  The remaining enhancement is to deep-link to the **specific** KB article each E.D.I.T.H suggestion
+  references — this requires the backend to return an article URL (or slug/ID) in
+  `summary.suggestedKBArticles` instead of a free-text term, so it is tracked as a backend-contract
+  follow-up. Once a ticket exists, link it in the chat too.
 - Persist `{ ticketId, ticketUrl }` on the session so a returning agent sees the existing ticket
   instead of creating a duplicate.
 

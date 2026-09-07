@@ -26,10 +26,10 @@
 | Repudiation | No client-side audit | Backend logs hub calls with connection ID + principal | Backend-owned |
 | Information disclosure — token theft via XSS | Injected script reading storage | Token never persisted; no HTML sinks; CSP recommended in deployment | CSP not yet enforced by hosting |
 | Information disclosure — bundle analysis | Reading shipped JS | No source maps; console stripped; optional obfuscation | Obfuscation is deterrence only |
-| Information disclosure — KB search leakage | Knowledge-base links currently go to `google.com/search?q=ThreatLocker+…` | **Replace with the ThreatLocker KB / portal URL** before any external deployment | Open |
+| Information disclosure — KB search leakage | Knowledge-base links | Both agent and chat views now link to the ThreatLocker Help Center (`threatlocker.kb.help`), not a public search engine, so issue terms are not sent to a third party | Deep-linking to specific KB articles (vs. a KB search) remains a backend-contract follow-up |
 | Denial of service | Queue polling every 5 s per agent | Acceptable at current scale; move to hub push + backoff when >50 agents | Low |
-| Elevation of privilege — analytics | `/analytics` route has no auth guard | Route guard (roadmap item 2); today it shows mock data only | Open |
-| Downgrade to plaintext | Misconfigured `VITE_BACKEND_URL=http://` in prod | `config.js` throws at load in production builds | — |
+| Elevation of privilege — analytics | `/analytics` route has no auth guard | **Intentionally public in the current build**: the Analytics view renders only client-side mock data (`generateMockData`) with no session, tenant, or backend data, so there is nothing sensitive to protect. When it is wired to a real backend metrics endpoint it MUST move behind the agent-session guard (roadmap item 2) before that endpoint is added | Accepted while mock-only; becomes Open the moment real data is wired in |
+| Downgrade to plaintext | Misconfigured or unset `VITE_BACKEND_URL=http://` in prod | The production **build fails** via the `enforceSecureBackend` plugin (`vite.config.js`), which rejects a plaintext (or unset → `localhost` default) backend unless `VITE_ALLOW_INSECURE_BACKEND=true`; the runtime additionally `console.warn`s. Throwing at module load was removed because it white-screened the SPA | — |
 
 ## What obfuscation does and does not do
 `npm run build:hardened` runs `javascript-obfuscator` (control-flow flattening, RC4 string array,
