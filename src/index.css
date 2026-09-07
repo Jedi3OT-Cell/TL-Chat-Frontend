@@ -6,7 +6,7 @@
 
 :root {
   color-scheme: light;
-  /* Aligned to the LiveChat design system (light theme, Inter, #0059e1) so the
+  /* ThreatLocker portal design tokens (light theme, Inter, #0059e1 primary) so the
      console drops cleanly into the portal. Re-point these tokens to re-skin. */
   --tl-bg: #f1f1f2;
   --tl-surface: #ffffff;
@@ -30,11 +30,11 @@
   --tl-danger: #ca0005;
   --tl-danger-weak: #fff8f8;
 
-  /* Type — Inter first (LiveChat's stack), graceful system fallback */
+  /* Type — Inter first (open-source, SIL OFL), graceful system fallback */
   --tl-font: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
   --tl-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
 
-  /* Space / radius / shadow (LiveChat radii + float/pop shadows) */
+  /* Space / radius / shadow (portal radii + float/pop elevation) */
   --tl-r-sm: 6px;
   --tl-r-md: 8px;
   --tl-r-lg: 12px;

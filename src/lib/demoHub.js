@@ -28,6 +28,14 @@ const DEMO_QUEUE = [
   },
 ];
 
+/**
+ * Build an in-memory connection that mimics the SignalR `HubConnection` surface
+ * (`on`/`off`/`invoke`/`start`/`stop`) and drives a scripted support session: a queued
+ * customer, an agent join, echoed messages with a canned reply, and session close. Used
+ * only in demo mode so the UI can be exercised end-to-end without a backend.
+ *
+ * @returns {object} A SignalR-shaped connection backed by local timers and state.
+ */
 export function createDemoConnection() {
   const handlers = new Map();
   let state = "Disconnected";

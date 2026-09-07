@@ -3,6 +3,21 @@ import { useState, useEffect, useRef } from "react";
 import { BACKEND } from "../lib/config";
 import { moduleColor, threatColor } from "../lib/classification";
 
+/**
+ * Live chat surface shared by customers and agents. Subscribes to the hub for incoming
+ * messages, typing indicators, agent-join and session-close events; sends messages and
+ * typing signals through guarded invokes; and, for customers, collects a post-session
+ * rating. All hub calls are defensive so a dropped socket never crashes or wedges the UI.
+ *
+ * @param {object} props
+ * @param {object|null} props.connection Live hub connection (may briefly be null).
+ * @param {string} props.sessionId Chat session identifier.
+ * @param {string} props.senderName Display name of the local participant.
+ * @param {"agent"|"customer"} props.senderRole Role of the local participant.
+ * @param {object} [props.summary] E.D.I.T.H analysis shown to the agent.
+ * @param {() => void} props.onClose Called when the local participant leaves/closes the session.
+ * @returns {JSX.Element}
+ */
 export default function ChatWindow({ connection, sessionId, senderName, senderRole, summary, onClose }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
@@ -36,6 +51,7 @@ export default function ChatWindow({ connection, sessionId, senderName, senderRo
 
   const [sendFailed, setSendFailed] = useState(false);
 
+  /** Send the trimmed composer text via `SendMessage`; clear the input on success, or flag a failure to let the user retry. */
   const sendMessage = async () => {
     if (!input.trim() || sessionClosed || !connection) return;
     const text = input.trim();
@@ -50,6 +66,11 @@ export default function ChatWindow({ connection, sessionId, senderName, senderRo
     }
   };
 
+  /**
+   * Composer keydown handler: Enter (without Shift) sends; any other key emits a debounced
+   * typing indicator that auto-clears after 2s of inactivity.
+   * @param {import("react").KeyboardEvent} e
+   */
   const handleKeyDown = async (e) => {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); await sendMessage(); return; }
     if (!connection) return;
@@ -61,6 +82,11 @@ export default function ChatWindow({ connection, sessionId, senderName, senderRo
     );
   };
 
+  /**
+   * Leave the session: an agent additionally closes it server-side via `CloseSession`.
+   * Runs through `finally` so the socket is stopped and `onClose` fires even if the invoke
+   * or stop rejects, ensuring the participant is never wedged in a dead session.
+   */
   const handleClose = async () => {
     try {
       if (senderRole === "agent" && connection) await connection.invoke("CloseSession", sessionId);
@@ -73,6 +99,11 @@ export default function ChatWindow({ connection, sessionId, senderName, senderRo
     }
   };
 
+  /**
+   * Submit the customer's 1–5 star post-session rating to the backend, marking it recorded
+   * only once the request succeeds.
+   * @param {number} star Selected rating, 1–5.
+   */
   const submitRating = async (star) => {
     setRating(star);
     try {

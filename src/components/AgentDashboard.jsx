@@ -6,6 +6,20 @@ import { BACKEND, authHeaders } from "../lib/config";
 import { createHubConnection } from "../lib/hub";
 import { moduleColor, normalizeSession, waitLabel } from "../lib/classification";
 
+/**
+ * Support console for a signed-in agent: shows the live customer queue (polled over REST
+ * and pushed over the hub), the selected session's intake details and E.D.I.T.H analysis,
+ * an analytics panel, and logout. Accepting a session hands the live hub connection to the
+ * chat window so the socket is reused rather than reopened.
+ *
+ * @param {object} props
+ * @param {string} props.agentName Display name of the signed-in agent.
+ * @param {string} props.token In-memory bearer token used for authenticated queue fetches and the hub.
+ * @param {(state: { connection: object, session: object, agentName: string, summary?: object }) => void} props.onJoinSession
+ *   Called when the agent accepts a session, handing off the live connection.
+ * @param {() => void} [props.onLogout] Called when the agent logs out.
+ * @returns {JSX.Element}
+ */
 export default function AgentDashboard({ agentName, token, onJoinSession, onLogout }) {
   const [queue, setQueue] = useState([]);
   const [selected, setSelected] = useState(null);
@@ -83,6 +97,11 @@ export default function AgentDashboard({ agentName, token, onJoinSession, onLogo
     };
   }, [agentName, token]);
 
+  /**
+   * Claim a queued session: invoke `JoinSession` on the hub, and only on success mark the
+   * connection as handed off (so cleanup does not stop it) and pass it to the chat window.
+   * @param {{ sessionId: string }} session The queued session to accept.
+   */
   const handlePickUp = async (session) => {
     const conn = connRef.current;
     if (!conn || pickingUp) return;

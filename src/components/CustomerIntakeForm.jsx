@@ -5,11 +5,23 @@ import { createHubConnection } from "../lib/hub";
 
 const OS_LIST = ["Windows 11", "Windows 10", "Windows Server 2022", "Windows Server 2019", "macOS", "Linux"];
 
+/**
+ * Customer intake form. Collects name, organization, OS, and issue description, opens a
+ * support session over REST, then joins the chat hub as the customer and hands the live
+ * connection up via `onSessionStart`.
+ * @param {{ onSessionStart: (state: { connection: object, sessionId: string, customerName: string }) => void }} props
+ * @returns {JSX.Element}
+ */
 export default function CustomerIntakeForm({ onSessionStart }) {
   const [form, setForm] = useState({ customerName: "", organizationName: "", osPlatform: "", issueDescription: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  /**
+   * Validate all fields, create the session (checking `res.ok` and a returned `sessionId`),
+   * then start the hub and join as the customer. Any failure stops the socket and surfaces
+   * a retryable error rather than leaving a half-open connection.
+   */
   const handleSubmit = async () => {
     if (!form.customerName || !form.organizationName || !form.osPlatform || !form.issueDescription) {
       setError("ALL FIELDS REQUIRED");

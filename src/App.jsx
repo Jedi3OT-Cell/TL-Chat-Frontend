@@ -9,6 +9,11 @@ import Analytics from "./components/Analytics";
 import { BACKEND } from "./lib/config";
 
 // ── Landing Page ────────────────────────────────────────────────────────────
+/**
+ * Public landing screen with a live clock and the two entry points
+ * (customer "Request Support" and "Agent Login"). Renders no session data.
+ * @returns {JSX.Element}
+ */
 function LandingPage() {
   const navigate = useNavigate();
   const [time, setTime] = useState(new Date());
@@ -58,6 +63,12 @@ function LandingPage() {
 }
 
 // ── Agent Login ─────────────────────────────────────────────────────────────
+/**
+ * Agent authentication form. On success it hands the display name and in-memory JWT
+ * to the parent via `onLogin`; the token is never persisted to web storage.
+ * @param {{ onLogin: (agent: { displayName: string, token: string }) => void }} props
+ * @returns {JSX.Element}
+ */
 function AgentLogin({ onLogin }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -65,6 +76,7 @@ function AgentLogin({ onLogin }) {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  /** Validate both fields, POST credentials, and lift the returned agent up via `onLogin`. */
   const handleLogin = async () => {
     if (!username || !password) { setError("ALL FIELDS REQUIRED"); return; }
     setLoading(true);
@@ -147,6 +159,11 @@ function AgentLogin({ onLogin }) {
 }
 
 // ── Customer Flow ────────────────────────────────────────────────────────────
+/**
+ * Customer side of the app: shows the intake form until a session starts, then the
+ * chat window for that session.
+ * @returns {JSX.Element}
+ */
 function CustomerFlow() {
   const [chatState, setChatState] = useState(null);
   if (!chatState) return <CustomerIntakeForm onSessionStart={setChatState} />;
@@ -162,10 +179,16 @@ function CustomerFlow() {
 }
 
 // ── Agent Flow ───────────────────────────────────────────────────────────────
+/**
+ * Agent side of the app: login → dashboard (queue) → chat window. The agent identity
+ * and token live only in this component's state for the session's lifetime.
+ * @returns {JSX.Element}
+ */
 function AgentFlow() {
   const [agent, setAgent] = useState(null);
   const [chatState, setChatState] = useState(null);
 
+  /** Clear the active chat and agent identity, returning to the login screen. */
   const logout = () => { setChatState(null); setAgent(null); };
 
   if (!agent) return <AgentLogin onLogin={setAgent} />;
@@ -190,6 +213,11 @@ function AgentFlow() {
 }
 
 // ── Root ─────────────────────────────────────────────────────────────────────
+/**
+ * Application root: wires the client-side routes (landing, customer chat, agent
+ * console, analytics) and redirects any unknown path back to the landing page.
+ * @returns {JSX.Element}
+ */
 export default function App() {
   return (
     <BrowserRouter>

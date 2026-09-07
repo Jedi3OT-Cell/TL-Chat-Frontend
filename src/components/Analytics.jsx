@@ -5,6 +5,12 @@ import { useNavigate } from "react-router-dom";
 const AGENTS = ["Tillman", "Agent 2", "Agent 3"];
 const SURVEY_QUESTIONS = ["Issue resolved on first contact", "Agent was knowledgeable", "Response time was acceptable", "Would contact support again"];
 
+/**
+ * Build the client-side sample dataset backing the analytics view. This is placeholder
+ * data only — no session, tenant, or backend data — so the view can render standalone
+ * until a real metrics endpoint is wired in.
+ * @returns {Array<object>} One synthetic performance record per agent.
+ */
 function generateMockData() {
   return AGENTS.map((name) => ({
     name,
@@ -26,6 +32,11 @@ function generateMockData() {
   }));
 }
 
+/**
+ * Small KPI tile showing a label, a primary value, and an optional sub-label.
+ * @param {{ label: string, value: (string|number), sub?: string }} props
+ * @returns {JSX.Element}
+ */
 function StatCard({ label, value, sub }) {
   return (
     <div className="tl-stat">
@@ -36,6 +47,11 @@ function StatCard({ label, value, sub }) {
   );
 }
 
+/**
+ * Render five stars with the first `rating` (rounded) filled.
+ * @param {{ rating: number }} props
+ * @returns {JSX.Element}
+ */
 function StarRating({ rating }) {
   return (
     <div className="tl-stars">
@@ -51,6 +67,11 @@ function StarRating({ rating }) {
   );
 }
 
+/**
+ * Horizontal progress bar filled to `value` as a percentage of `max`.
+ * @param {{ value: number, max?: number }} props
+ * @returns {JSX.Element}
+ */
 function RatingBar({ value, max = 100 }) {
   return (
     <div className="tl-bar">
@@ -59,6 +80,12 @@ function RatingBar({ value, max = 100 }) {
   );
 }
 
+/**
+ * Support analytics dashboard: team KPI strip, per-agent roster, and an overview/reviews
+ * breakdown for the selected agent. Renders sample data only (see `generateMockData`).
+ * @param {{ onBack?: () => void }} [props] Optional back handler; falls back to navigating home.
+ * @returns {JSX.Element}
+ */
 export default function Analytics({ onBack }) {
   const navigate = useNavigate();
   const back = onBack || (() => navigate("/"));
