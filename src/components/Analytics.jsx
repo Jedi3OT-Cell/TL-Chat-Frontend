@@ -144,7 +144,7 @@ export default function Analytics({ onBack }) {
               </div>
               <div className="tl-spread" style={{ padding: "6px 0" }}>
                 <span className="tl-muted">Avg satisfaction</span>
-                <span style={{ fontWeight: 600, color: "var(--tl-warn)" }}>{totals.avgSatisfaction}/5</span>
+                <span style={{ fontWeight: 600, color: "var(--tl-warn-text)" }}>{totals.avgSatisfaction}/5</span>
               </div>
               <div className="tl-spread" style={{ padding: "6px 0" }}>
                 <span className="tl-muted">Avg availability</span>
@@ -220,7 +220,7 @@ export default function Analytics({ onBack }) {
           {tab === "reviews" && (
             <div className="tl-col" style={{ gap: 12 }}>
               <div className="tl-box tl-row" style={{ gap: 20 }}>
-                <div style={{ fontSize: 44, fontWeight: 700, color: "var(--tl-warn)" }}>{selected.satisfaction}</div>
+                <div style={{ fontSize: 44, fontWeight: 700, color: "var(--tl-warn-text)" }}>{selected.satisfaction}</div>
                 <div>
                   <StarRating rating={selected.satisfaction} />
                   <div className="tl-faint" style={{ fontSize: 12, marginTop: 4 }}>{selected.reviews.length} reviews</div>

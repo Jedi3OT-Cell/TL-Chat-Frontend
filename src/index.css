@@ -25,7 +25,8 @@
   --tl-brand-border: rgba(0, 89, 225, 0.35);
 
   --tl-success: #00893c;
-  --tl-warn: #e8bb00;
+  --tl-warn: #e8bb00;            /* gold — decorative only (stars, status dots, bars) */
+  --tl-warn-text: #806700;       /* accessible amber for warn-colored TEXT (>=4.5:1 on white) */
   --tl-danger: #ca0005;
   --tl-danger-weak: #fff8f8;
 

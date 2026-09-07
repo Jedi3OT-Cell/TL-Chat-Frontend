@@ -55,7 +55,10 @@ for (const file of readdirSync(ASSETS)) {
   const source = readFileSync(path, 'utf8');
   const out = JavaScriptObfuscator.obfuscate(source, options).getObfuscatedCode();
   writeFileSync(path, out);
-  console.log(`[obfuscate] ${file}: ${source.length} -> ${out.length} bytes`);
+  // Report true UTF-8 byte counts (String#length is UTF-16 code units, not bytes).
+  const inBytes = Buffer.byteLength(source, 'utf8');
+  const outBytes = Buffer.byteLength(out, 'utf8');
+  console.log(`[obfuscate] ${file}: ${inBytes} -> ${outBytes} bytes`);
   processed++;
 }
 if (processed === 0) {
