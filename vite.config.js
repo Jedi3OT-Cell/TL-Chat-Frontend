@@ -22,14 +22,25 @@ function enforceSecureBackend() {
       // http://localhost:5000. Trim FIRST, then fall back, so "   " does not slip through as an
       // empty string that fails the http:// test. Compare case-insensitively.
       const backend = (env.VITE_BACKEND_URL || '').trim() || 'http://localhost:5000'
-      // `vite build` is always a production build (NODE_ENV=production), so this rejects a
-      // plaintext or unset backend for EVERY build — there is no override and no plaintext bundle
-      // can be produced. For local development against an http backend, use the dev server
-      // (`npm run dev`), which is not a build and is not subject to this guard.
-      if (backend.toLowerCase().startsWith('http://')) {
+      // `vite build` is always a production build (NODE_ENV=production). Require a positively
+      // valid https:// URL — parse it and check the protocol, so http://, ftp://, a bare
+      // "https://" with no host, or any other malformed value is rejected here at build time
+      // rather than failing later in the browser. There is no override; for local development
+      // against an http backend, use the dev server (`npm run dev`), not a build.
+      const shown = env.VITE_BACKEND_URL || '<unset, defaults to http://localhost:5000>'
+      let backendUrl
+      try {
+        backendUrl = new URL(backend)
+      } catch {
         throw new Error(
-          '[enforce-secure-backend] Refusing to build a production bundle pointed at a plaintext ' +
-          'http:// backend (VITE_BACKEND_URL=' + (env.VITE_BACKEND_URL || '<unset, defaults to http://localhost:5000>') + '). ' +
+          '[enforce-secure-backend] VITE_BACKEND_URL must be a valid absolute https:// URL ' +
+          '(got: ' + shown + ').'
+        )
+      }
+      if (backendUrl.protocol !== 'https:') {
+        throw new Error(
+          '[enforce-secure-backend] Refusing to build with a non-https backend ' +
+          '(VITE_BACKEND_URL=' + shown + ', scheme "' + backendUrl.protocol + '"). ' +
           'Builds require an https:// VITE_BACKEND_URL. For local development against an http ' +
           'backend, use the dev server (`npm run dev`) instead of a build.'
         )
