@@ -5,40 +5,42 @@
    ============================================================================ */
 
 :root {
-  /* Brand + neutrals (refined dark slate, single blue accent) */
-  --tl-bg: #0b0f17;
-  --tl-surface: #121826;
-  --tl-surface-2: #0e1420;
-  --tl-elevated: #161d2e;
-  --tl-border: #1e2636;
-  --tl-border-strong: #2a3446;
+  color-scheme: light;
+  /* Aligned to the LiveChat design system (light theme, Inter, #0059e1) so the
+     console drops cleanly into the portal. Re-point these tokens to re-skin. */
+  --tl-bg: #f1f1f2;
+  --tl-surface: #ffffff;
+  --tl-surface-2: #f5f5f5;
+  --tl-elevated: #f5f5f5;
+  --tl-border: #e2e2e4;
+  --tl-border-strong: #c9c9cd;
 
-  --tl-text: #e6eaf2;
-  --tl-text-muted: #9aa7bc;
-  --tl-text-faint: #6b7a90;
+  --tl-text: #131317;
+  --tl-text-muted: #62626d;
+  --tl-text-faint: #8d8d95;
 
-  --tl-brand: #3b82f6;
-  --tl-brand-strong: #2563eb;
-  --tl-brand-weak: rgba(59, 130, 246, 0.12);
-  --tl-brand-border: rgba(59, 130, 246, 0.35);
+  --tl-brand: #0059e1;
+  --tl-brand-strong: #0644a4;
+  --tl-brand-weak: #f4faff;
+  --tl-brand-border: rgba(0, 89, 225, 0.35);
 
-  --tl-success: #22c55e;
-  --tl-warn: #f59e0b;
-  --tl-danger: #ef4444;
-  --tl-danger-weak: rgba(239, 68, 68, 0.12);
+  --tl-success: #00893c;
+  --tl-warn: #e8bb00;
+  --tl-danger: #ca0005;
+  --tl-danger-weak: #fff8f8;
 
-  /* Type */
-  --tl-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  /* Type — Inter first (LiveChat's stack), graceful system fallback */
+  --tl-font: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
   --tl-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
 
-  /* Space / radius / shadow */
+  /* Space / radius / shadow (LiveChat radii + float/pop shadows) */
   --tl-r-sm: 6px;
   --tl-r-md: 8px;
   --tl-r-lg: 12px;
   --tl-r-pill: 999px;
-  --tl-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --tl-shadow-md: 0 6px 20px rgba(0, 0, 0, 0.35);
-  --tl-shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.5);
+  --tl-shadow-sm: 0 1px 2px rgba(19, 19, 23, 0.06);
+  --tl-shadow-md: 0 2px 6px rgba(19, 19, 23, 0.2);
+  --tl-shadow-lg: 0 6px 20px rgba(19, 19, 23, 0.16);
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -64,7 +66,7 @@ a:hover { text-decoration: underline; }
 
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-thumb { background: var(--tl-border-strong); border-radius: var(--tl-r-pill); border: 2px solid transparent; background-clip: padding-box; }
-::-webkit-scrollbar-thumb:hover { background: #37425a; background-clip: padding-box; }
+::-webkit-scrollbar-thumb:hover { background: #ababb1; background-clip: padding-box; }
 
 /* ---- Layout shells ------------------------------------------------------- */
 .tl-screen { flex: 1; min-height: 100vh; width: 100%; display: flex; flex-direction: column; }
@@ -159,7 +161,7 @@ a:hover { text-decoration: underline; }
 .tl-btn--primary { background: var(--tl-brand); color: #fff; }
 .tl-btn--primary:hover:not(:disabled) { background: var(--tl-brand-strong); }
 .tl-btn--ghost { background: transparent; border-color: var(--tl-border-strong); color: var(--tl-text); }
-.tl-btn--ghost:hover:not(:disabled) { border-color: var(--tl-brand-border); color: #fff; }
+.tl-btn--ghost:hover:not(:disabled) { border-color: var(--tl-brand-border); color: var(--tl-brand); }
 .tl-btn--subtle { background: var(--tl-elevated); border-color: var(--tl-border); color: var(--tl-text-muted); }
 .tl-btn--subtle:hover:not(:disabled) { color: var(--tl-text); border-color: var(--tl-border-strong); }
 .tl-btn--danger { background: transparent; border-color: rgba(239, 68, 68, 0.4); color: var(--tl-danger); }
@@ -183,7 +185,7 @@ a:hover { text-decoration: underline; }
 
 /* ---- Alerts -------------------------------------------------------------- */
 .tl-alert { font-size: 13px; padding: 10px 12px; border-radius: var(--tl-r-md); margin-bottom: 14px; }
-.tl-alert--error { color: #fecaca; background: var(--tl-danger-weak); border: 1px solid rgba(239, 68, 68, 0.3); }
+.tl-alert--error { color: #ae0003; background: var(--tl-danger-weak); border: 1px solid rgba(202, 0, 5, 0.3); }
 
 /* ---- Top bar (app header) ----------------------------------------------- */
 .tl-topbar {
