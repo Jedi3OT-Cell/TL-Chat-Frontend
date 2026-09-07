@@ -26,11 +26,11 @@ Agent workstation ──VPN/ZTNA──▶ Internal reverse proxy ──▶ LiveC
 
 ### DNS
 - Publish `support-chat.internal.<company>.com` on the **internal resolver only**
-  (Technitium / AD DNS), with **no public A/AAAA record**. Split-horizon DNS keeps the name from
+  (the internal resolver), with **no public A/AAAA record**. Split-horizon DNS keeps the name from
   resolving off-network.
 
 ### TLS (internal CA)
-- Issue the certificate from the internal CA (`devops-ca-01` / step-ca), SAN =
+- Issue the certificate from the internal CA, SAN =
   `support-chat.internal.<company>.com`.
 - Distribute the internal root to endpoints via GPO/MDM so browsers trust it without warnings.
 - Because the cert is trusted internally, `VITE_BACKEND_URL` is `https://…` and the build-time
@@ -60,7 +60,7 @@ Agent workstation ──VPN/ZTNA──▶ Internal reverse proxy ──▶ LiveC
   **organization, primary contact, summary of issue, and product** *(verify field names/enum)*.
   There is a `+ New Ticket` action in the portal UI.
 - **Portal API:** base URL `https://portalapi.<INSTANCE>.threatlocker.com/portalapi/<endpoint>`
-  where `<INSTANCE>` is your cloud instance (A–H, EU1, CA1, FedRAMP). Auth uses a **Portal API Key**
+  where `<INSTANCE>` is your cloud instance. Auth uses a **Portal API Key**
   created under **Administrators → API Users**, sent with your **Instance ID**; org-scoped calls
   include a `managedOrganizationId` header (a GUID). API tokens have a selectable expiration that
   renews on each use. The documented API surface covers Computer, Organization, Policy, Report,

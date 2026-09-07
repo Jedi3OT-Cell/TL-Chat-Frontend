@@ -14,7 +14,7 @@ export async function mockBackendOk(page, overrides = {}) {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ displayName: overrides.displayName || 'Tillman', token: 'e2e.jwt.token' }),
+      body: JSON.stringify({ displayName: overrides.displayName || 'Demo Agent', token: 'e2e.jwt.token' }),
     });
   });
 

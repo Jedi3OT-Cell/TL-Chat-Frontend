@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-const AGENTS = ["Tillman", "Agent 2", "Agent 3"];
+const AGENTS = ["Agent 1", "Agent 2", "Agent 3"];
 const SURVEY_QUESTIONS = ["Issue resolved on first contact", "Agent was knowledgeable", "Response time was acceptable", "Would contact support again"];
 
 /**

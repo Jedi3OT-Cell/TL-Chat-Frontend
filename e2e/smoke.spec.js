@@ -65,7 +65,7 @@ test.describe('Agent login', () => {
   test('valid credentials reach the support console with an empty queue', async ({ page }) => {
     await mockBackendOk(page);
     await page.goto('/agent');
-    await page.getByPlaceholder('Username').fill('tillman');
+    await page.getByPlaceholder('Username').fill('demo.agent');
     await page.getByPlaceholder('Password').fill('correct-horse');
     await page.getByRole('button', { name: /AUTHENTICATE/i }).click();
     await expect(page.getByText(/SUPPORT CONSOLE/i)).toBeVisible();
@@ -94,7 +94,7 @@ test.describe('Agent login', () => {
       ],
     });
     await page.goto('/agent');
-    await page.getByPlaceholder('Username').fill('tillman');
+    await page.getByPlaceholder('Username').fill('demo.agent');
     await page.getByPlaceholder('Password').fill('correct-horse');
     await page.getByRole('button', { name: /AUTHENTICATE/i }).click();
     await expect(page.getByText('ADA LOVELACE')).toBeVisible();
@@ -111,6 +111,6 @@ test.describe('Analytics', () => {
     // Assert on a named control that only the analytics view renders, not a bare non-empty body.
     await expect(page.getByRole('button', { name: /BACK TO CONSOLE/i })).toBeVisible();
     // Agent names from the mock analytics dataset
-    await expect(page.getByText(/Tillman/i).first()).toBeVisible();
+    await expect(page.getByText(/Agent 1/i).first()).toBeVisible();
   });
 });
